@@ -50,3 +50,7 @@ mason-lock.json
 hydrated_aes_cipher.dart
 
 /android/app/.cxx
+
+# Database
+assets/database/cities.db
+assets/database/cities.db.zip
