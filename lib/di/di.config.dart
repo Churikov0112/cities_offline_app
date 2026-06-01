@@ -1,0 +1,44 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
+
+// **************************************************************************
+// InjectableConfigGenerator
+// **************************************************************************
+
+// ignore_for_file: type=lint
+// coverage:ignore-file
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:get_it/get_it.dart' as _i174;
+import 'package:injectable/injectable.dart' as _i526;
+
+import '../features/ai_game/domain/services/ai_move_service.dart' as _i30;
+import '../features/ai_game/presentation/bloc/ai_game_bloc.dart' as _i320;
+import '../features/mediator/domain/repos/cities_repository.dart' as _i34;
+import '../features/mediator/presentation/bloc/mediator_bloc.dart' as _i661;
+
+// initializes the registration of main-scope dependencies inside of GetIt
+_i174.GetIt $initGetIt(
+  _i174.GetIt getIt, {
+  String? environment,
+  _i526.EnvironmentFilter? environmentFilter,
+}) {
+  final gh = _i526.GetItHelper(getIt, environment, environmentFilter);
+  gh.singleton<_i34.CitiesRepository>(
+    () => _i34.CitiesRepository(),
+    dispose: (i) => i.dispose(),
+  );
+  gh.singleton<_i30.AiMoveService>(
+    () => _i30.AiMoveService(citiesRepository: gh<_i34.CitiesRepository>()),
+  );
+  gh.singleton<_i661.MediatorBloc>(
+    () => _i661.MediatorBloc(citiesRepository: gh<_i34.CitiesRepository>()),
+  );
+  gh.singleton<_i320.AiGameBloc>(
+    () => _i320.AiGameBloc(
+      citiesRepository: gh<_i34.CitiesRepository>(),
+      aiMoveService: gh<_i30.AiMoveService>(),
+    ),
+  );
+  return getIt;
+}
