@@ -36,37 +36,42 @@ class MediatorScreenPresenterState extends State<MediatorScreenPresenter> {
   }
 
   String rejectReasonText(MediatorTurn turn) {
+    final lang = getIt<LanguageBloc>().state.language;
     switch (turn.rejectReason) {
       case MediatorTurnRejectReason.emptyInput:
-        return 'Введите название населенного пункта';
+        return AppGlossary.rejectEmptyInput.translate();
       case MediatorTurnRejectReason.notFound:
-        return 'Населенный пункт не найден в базе';
+        return AppGlossary.rejectNotFound.translate();
       case MediatorTurnRejectReason.alreadyUsed:
         final duplicateName = turn.duplicateMatchedName;
-        final actualName = turn.locality?.matchedName;
-        if (duplicateName != null && actualName != null && duplicateName.toLowerCase() != actualName.toLowerCase()) {
-          return 'Этот населенный пункт уже использован как "$duplicateName". '
-              'Актуальное название: "$actualName".';
-        }
+        final baseMsg = AppGlossary.rejectAlreadyUsed.translate();
         if (duplicateName != null) {
-          return 'Этот населенный пункт уже использован: "$duplicateName".';
+          return '$baseMsg: "$duplicateName".';
         }
-        return 'Этот населенный пункт уже использован';
+        return baseMsg;
       case MediatorTurnRejectReason.wrongStartLetter:
         final expected = turn.expectedStartLetter;
         if (expected == null) {
-          return 'Неверная первая буква';
+          return AppGlossary.rejectWrongStartLetter.translate().replaceAll('{letter}', '?');
         }
-        return 'Нужно начать с буквы "$expected"';
+        return AppGlossary.rejectWrongStartLetter.translate().replaceAll('{letter}', expected);
       case MediatorTurnRejectReason.typeNotAllowed:
         final type = turn.locality?.cityType;
-        return 'Тип "$type" не засчитывается по текущим настройкам';
+        final translated = type != null ? translateCityType(type) : '?';
+        return AppGlossary.rejectTypeNotAllowed.translate().replaceAll('{type}', translated);
       case MediatorTurnRejectReason.oldNameNotAllowed:
-        return 'Исторические названия отключены в правилах';
+        return AppGlossary.rejectOldNameNotAllowed.translate();
       case MediatorTurnRejectReason.belowMinPopulation:
-        return 'Население меньше минимального порога из настроек';
+        return AppGlossary.rejectBelowMinPopulation.translate();
+      case MediatorTurnRejectReason.countryNotAllowed:
+        final locality = turn.locality;
+        if (locality == null || locality.countryCode.isEmpty) {
+          return AppGlossary.rejectCountryNotAllowed.translate().replaceAll('{country}', '?');
+        }
+        final countryName = countryNames[locality.countryCode.toLowerCase()]?[lang] ?? locality.country;
+        return AppGlossary.rejectCountryNotAllowed.translate().replaceAll('{country}', countryName);
       case null:
-        return 'Ход отклонен';
+        return AppGlossary.rejectDeclined.translate();
     }
   }
 

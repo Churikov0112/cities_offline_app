@@ -42,28 +42,37 @@ class AiGameScreenPresenterState extends State<AiGameScreenPresenter> {
   }
 
   String rejectReasonText(AiTurn turn) {
+    final lang = getIt<LanguageBloc>().state.language;
     switch (turn.rejectReason) {
       case AiTurnRejectReason.emptyInput:
-        return 'Введите название населенного пункта';
+        return AppGlossary.rejectEmptyInput.translate();
       case AiTurnRejectReason.notFound:
-        return 'Населенный пункт не найден в базе';
+        return AppGlossary.rejectNotFound.translate();
       case AiTurnRejectReason.alreadyUsed:
-        return 'Этот населенный пункт уже использован';
+        return AppGlossary.rejectAlreadyUsed.translate();
       case AiTurnRejectReason.wrongStartLetter:
         final expected = turn.expectedStartLetter;
         if (expected == null || expected.isEmpty) {
-          return 'Неверная первая буква';
+          return AppGlossary.rejectWrongStartLetter.translate().replaceAll('{letter}', '?');
         }
-        return 'Нужно начать с буквы "$expected"';
+        return AppGlossary.rejectWrongStartLetter.translate().replaceAll('{letter}', expected);
       case AiTurnRejectReason.typeNotAllowed:
         final type = turn.locality?.cityType;
-        return 'Тип "$type" не засчитывается по текущим настройкам';
+        final translated = type != null ? translateCityType(type) : '?';
+        return AppGlossary.rejectTypeNotAllowed.translate().replaceAll('{type}', translated);
       case AiTurnRejectReason.oldNameNotAllowed:
-        return 'Исторические названия отключены в правилах';
+        return AppGlossary.rejectOldNameNotAllowed.translate();
       case AiTurnRejectReason.belowMinPopulation:
-        return 'Население меньше минимального порога из настроек';
+        return AppGlossary.rejectBelowMinPopulation.translate();
+      case AiTurnRejectReason.countryNotAllowed:
+        final locality = turn.locality;
+        if (locality == null || locality.countryCode.isEmpty) {
+          return AppGlossary.rejectCountryNotAllowed.translate().replaceAll('{country}', '?');
+        }
+        final countryName = countryNames[locality.countryCode.toLowerCase()]?[lang] ?? locality.country;
+        return AppGlossary.rejectCountryNotAllowed.translate().replaceAll('{country}', countryName);
       case null:
-        return 'Ход отклонен';
+        return AppGlossary.rejectDeclined.translate();
     }
   }
 

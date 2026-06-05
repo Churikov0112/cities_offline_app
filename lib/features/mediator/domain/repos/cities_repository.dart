@@ -210,6 +210,7 @@ class CitiesRepository {
     required bool allowHistoricalNames,
     required int minPopulation,
     required Set<String> usedPlaceIds,
+    required Set<String> allowedCountryCodes,
     String? preferredLang,
     int limit = 200,
   }) async {
@@ -220,12 +221,16 @@ class CitiesRepository {
     }
     final allowedTypesList = allowedTypes.map((e) => e.toLowerCase()).toList()
       ..sort();
+    final allowedCountryCodesList = allowedCountryCodes.map((e) => e.toLowerCase()).toList()
+      ..sort();
 
     final where = <String>[
       'substr(pn.normalized_name, 1, 1) IN (${List.filled(letters.length, '?').join(', ')})',
       if (!allowHistoricalNames) 'pn.lang != ?',
       if (allowedTypes.isNotEmpty)
         'p.city_type IN (${List.filled(allowedTypesList.length, '?').join(', ')})',
+      if (allowedCountryCodes.isNotEmpty)
+        'LOWER(p.country_code) IN (${List.filled(allowedCountryCodesList.length, '?').join(', ')})',
       'COALESCE(p.population, 0) >= ?',
       if (usedPlaceIds.isNotEmpty)
         'p.id NOT IN (${List.filled(usedPlaceIds.length, '?').join(', ')})',
@@ -235,6 +240,7 @@ class CitiesRepository {
       ...letters,
       if (!allowHistoricalNames) 'old_name',
       if (allowedTypes.isNotEmpty) ...allowedTypesList,
+      if (allowedCountryCodes.isNotEmpty) ...allowedCountryCodesList,
       minPopulation,
       if (usedPlaceIds.isNotEmpty) ...usedPlaceIds,
     ];

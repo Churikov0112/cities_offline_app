@@ -45,6 +45,7 @@ class AiMoveService {
       allowedTypes: session.rules.allowedTypes,
       allowHistoricalNames: session.rules.allowHistoricalNames,
       minPopulation: session.rules.minPopulation,
+      allowedCountryCodes: session.rules.allowedCountryCodes,
       usedPlaceIds: session.turns
           .where(
             (turn) =>
@@ -106,6 +107,7 @@ class AiMoveService {
       allowedTypes: session.rules.allowedTypes,
       allowHistoricalNames: session.rules.allowHistoricalNames,
       minPopulation: session.rules.minPopulation,
+      allowedCountryCodes: session.rules.allowedCountryCodes,
       usedPlaceIds: session.turns
           .where(
             (turn) =>

@@ -3,6 +3,7 @@ import 'package:cities_offline_app/features/ai_game/domain/models/ai_difficulty_
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_rules.dart';
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_state.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
+import 'package:cities_offline_app/features/ai_game/presentation/country_picker_sheet.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/difficulty_picker_sheet.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/language_picker_sheet.dart';
 import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
@@ -82,6 +83,21 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
     });
   }
 
+  void _showCountryPicker(BuildContext context) {
+    BottomSheetController.showBottomSheet(
+      context,
+      (_) => CountryPickerSheet(
+        selectedCodes: _rules.allowedCountryCodes,
+        onChanged: (codes) {
+          setState(() {
+            _rules = _rules.copyWith(allowedCountryCodes: codes);
+          });
+        },
+      ),
+      expand: true,
+    );
+  }
+
   void _showLanguagePicker(BuildContext context, LanguagesState langState) {
     BottomSheetController.showBottomSheet(
       context,
@@ -154,6 +170,14 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                         });
                       },
                     ),
+                  ),
+                  ListTile(
+                    title: Text(AppGlossary.countries.translate()),
+                    subtitle: Text(_rules.allowedCountryCodes.isEmpty
+                        ? AppGlossary.all.translate()
+                        : '${_rules.allowedCountryCodes.length} ${AppGlossary.countries.translate().toLowerCase()}'),
+                    trailing: const Icon(Icons.keyboard_arrow_down),
+                    onTap: () => _showCountryPicker(context),
                   ),
                   SwitchListTile(
                     value: _rules.allowHistoricalNames,

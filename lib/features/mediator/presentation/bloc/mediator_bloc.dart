@@ -174,6 +174,23 @@ class MediatorBloc extends HydratedBloc<MediatorEvent, MediatorState> {
       return;
     }
 
+    if (!session.rules.isAllowedCountry(locality.countryCode)) {
+      emit(
+        state.upsertSession(
+          session.withTurn(
+            MediatorTurn(
+              input: input,
+              status: MediatorTurnStatus.rejected,
+              locality: locality,
+              rejectReason: MediatorTurnRejectReason.countryNotAllowed,
+              expectedStartLetter: expectedStartLetter,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     if (!session.rules.allowHistoricalNames &&
         locality.matchedLang == 'old_name') {
       emit(

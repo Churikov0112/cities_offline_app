@@ -323,6 +323,17 @@ class AiGameBloc extends HydratedBloc<AiGameEvent, AiGameState> {
       );
     }
 
+    if (!session.rules.isAllowedCountry(locality.countryCode)) {
+      return AiTurn(
+        actor: AiTurnActor.user,
+        input: input,
+        status: AiTurnStatus.rejected,
+        locality: locality,
+        rejectReason: AiTurnRejectReason.countryNotAllowed,
+        expectedStartLetter: expectedStartLetter,
+      );
+    }
+
     if (!session.rules.allowHistoricalNames &&
         locality.matchedLang == 'old_name') {
       return AiTurn(

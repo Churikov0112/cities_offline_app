@@ -1,7 +1,9 @@
 import 'package:cities_offline_app/di/di.dart';
+import 'package:cities_offline_app/features/ai_game/presentation/country_picker_sheet.dart';
 import 'package:cities_offline_app/features/mediator/domain/models/mediator_game_rules.dart';
 import 'package:cities_offline_app/features/mediator/presentation/bloc/mediator_bloc.dart';
 import 'package:cities_offline_app/services/localization/translator.dart';
+import 'package:cities_offline_app/services/navigation/bottom_sheet_controller.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -41,6 +43,21 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
     super.dispose();
   }
 
+  void _showCountryPicker(BuildContext context) {
+    BottomSheetController.showBottomSheet(
+      context,
+      (_) => CountryPickerSheet(
+        selectedCodes: _rules.allowedCountryCodes,
+        onChanged: (codes) {
+          setState(() {
+            _rules = _rules.copyWith(allowedCountryCodes: codes);
+          });
+        },
+      ),
+      expand: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -78,7 +95,7 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
               ...['city', 'town', 'village', 'hamlet'].map(
                 (type) => CheckboxListTile(
                   value: _rules.allowedTypes.contains(type),
-                  title: Text(type),
+                  title: Text(translateCityType(type)),
                   onChanged: (v) {
                     setState(() {
                       final next = {..._rules.allowedTypes};
@@ -91,9 +108,17 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
                     });
                   },
                 ),
-              ),
-              SwitchListTile(
-                value: _rules.allowHistoricalNames,
+                ),
+                  ListTile(
+                    title: Text(AppGlossary.countries.translate()),
+                    subtitle: Text(_rules.allowedCountryCodes.isEmpty
+                        ? AppGlossary.all.translate()
+                        : '${_rules.allowedCountryCodes.length} ${AppGlossary.countries.translate().toLowerCase()}'),
+                    trailing: const Icon(Icons.keyboard_arrow_down),
+                    onTap: () => _showCountryPicker(context),
+                  ),
+                  SwitchListTile(
+                    value: _rules.allowHistoricalNames,
                 title: Translator(
                   termin: AppGlossary.allowHistoricalNames,
                   builder: (text) => Text(text),

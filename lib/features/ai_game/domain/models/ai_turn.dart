@@ -12,6 +12,7 @@ enum AiTurnRejectReason {
   typeNotAllowed,
   oldNameNotAllowed,
   belowMinPopulation,
+  countryNotAllowed,
 }
 
 class AiTurn {

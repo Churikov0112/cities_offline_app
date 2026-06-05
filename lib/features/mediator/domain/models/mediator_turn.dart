@@ -10,6 +10,7 @@ enum MediatorTurnRejectReason {
   typeNotAllowed,
   oldNameNotAllowed,
   belowMinPopulation,
+  countryNotAllowed,
 }
 
 class MediatorTurn {

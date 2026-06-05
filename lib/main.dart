@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cities_offline_app/di/di.dart';
+import 'package:cities_offline_app/features/countries/presentation/bloc/countries_bloc.dart';
 import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,6 +46,7 @@ class _MyAppState extends State<MyApp> {
     await _unpackDatabase();
 
     await getIt<LanguagesBloc>().loadIfNeeded();
+    await getIt<CountriesBloc>().loadIfNeeded();
 
     _isInitialized = true;
     setState(() {});
