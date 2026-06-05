@@ -77,7 +77,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                 orElse: () => newIds.first,
               );
               _waitingForNewSession = false;
-              context.pushNamed(
+              context.pushReplacementNamed(
                 RoutePaths.aiGame.name,
                 pathParameters: {'sessionId': createdId},
               );
