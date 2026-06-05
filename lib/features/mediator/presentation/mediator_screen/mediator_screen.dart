@@ -3,8 +3,11 @@ import 'package:cities_offline_app/features/mediator/domain/models/locality.dart
 import 'package:cities_offline_app/features/mediator/domain/models/mediator_session.dart';
 import 'package:cities_offline_app/features/mediator/domain/models/mediator_turn.dart';
 import 'package:cities_offline_app/features/mediator/presentation/bloc/mediator_bloc.dart';
+import 'package:cities_offline_app/services/localization/country_names.dart';
+import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -27,7 +30,10 @@ class MediatorScreen extends StatelessWidget {
 
             return Scaffold(
               appBar: AppBar(
-                title: const Text('Медиатор'),
+                title: Translator(
+                  termin: AppGlossary.mediator,
+                  builder: (text) => Text(text),
+                ),
                 actions: [
                   IconButton(
                     onPressed: () {
@@ -45,16 +51,22 @@ class MediatorScreen extends StatelessWidget {
                   selector: (state) => state.sessionById(sessionId),
                   builder: (context, session) {
                     if (session == null) {
-                      return const Center(child: Text('Сессия не найдена'));
+                      return Center(
+                        child: Translator(
+                          termin: AppGlossary.sessionNotFound,
+                          builder: (text) => Text(text),
+                        ),
+                      );
                     }
 
                     return Column(
                       children: [
                         Expanded(
                           child: session.turns.isEmpty
-                              ? const Center(
-                                  child: Text(
-                                    'Введите первый населенный пункт',
+                              ? Center(
+                                  child: Translator(
+                                    termin: AppGlossary.enterCity,
+                                    builder: (text) => Text(text),
                                   ),
                                 )
                               : ListView.builder(
@@ -94,9 +106,9 @@ class MediatorScreen extends StatelessWidget {
                                       textInputAction: TextInputAction.send,
                                       onSubmitted: (_) =>
                                           presenter.submitCity(),
-                                      decoration: const InputDecoration(
-                                        hintText: 'Введите населенный пункт',
-                                        border: OutlineInputBorder(),
+                                      decoration: InputDecoration(
+                                        hintText: AppGlossary.enterCity.translate(),
+                                        border: const OutlineInputBorder(),
                                       ),
                                     ),
                                   ),
@@ -133,11 +145,14 @@ class _TurnStatusLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAccepted = turn.status == MediatorTurnStatus.accepted;
-    return Text(
-      isAccepted ? 'Принято' : 'Отклонено',
-      style: TextStyle(
-        fontWeight: FontWeight.w600,
-        color: isAccepted ? Colors.green : Colors.redAccent,
+    return Translator(
+      termin: isAccepted ? AppGlossary.accepted : AppGlossary.rejected,
+      builder: (text) => Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: isAccepted ? Colors.green : Colors.redAccent,
+        ),
       ),
     );
   }
@@ -300,13 +315,16 @@ class _LocalityDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentLang = getIt<LanguageBloc>().state.language;
+    final countryName = countryNames[locality.countryCode.toLowerCase()]?[currentLang] ?? locality.country;
     final details = <Widget>[
       if (locality.population != null)
-        _detailRow('Население', locality.population.toString()),
-      _detailRow('Тип', locality.cityType),
+        _detailRow(AppGlossary.population.translate(), NumberFormat('#,##0', 'de').format(locality.population)),
+      _detailRow(AppGlossary.type.translate(), translateCityType(locality.cityType)),
+      _detailRow(AppGlossary.country.translate(), countryName),
       if (locality.lat != null && locality.lon != null)
         _detailRow(
-          'Координаты',
+          AppGlossary.coordinates.translate(),
           '${locality.lat!.toStringAsFixed(4)}, ${locality.lon!.toStringAsFixed(4)}',
         ),
     ];
@@ -338,7 +356,10 @@ class _LocalityDetails extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.map, size: 16),
-                label: const Text('На карте', style: TextStyle(fontSize: 12)),
+                label: Translator(
+                  termin: AppGlossary.onMap,
+                  builder: (text) => Text(text, style: const TextStyle(fontSize: 12)),
+                ),
               ),
             ),
           ],

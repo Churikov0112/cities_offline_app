@@ -1,5 +1,6 @@
 import 'package:cities_offline_app/di/di.dart';
 import 'package:cities_offline_app/features/mediator/presentation/bloc/mediator_bloc.dart';
+import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,8 +15,12 @@ class MediatorSessionsScreen extends StatelessWidget {
     return BlocProvider.value(
       value: getIt<MediatorBloc>(),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Медиатор')),
-
+        appBar: AppBar(
+          title: Translator(
+            termin: AppGlossary.mediator,
+            builder: (text) => Text(text),
+          ),
+        ),
         body: SafeArea(
           child: Column(
             children: [
@@ -26,7 +31,10 @@ class MediatorSessionsScreen extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: () => context.pushNamed(RoutePaths.mediatorRules.name),
                     icon: const Icon(Icons.add),
-                    label: const Text('Новая игра'),
+                    label: Translator(
+                      termin: AppGlossary.newGame,
+                      builder: (text) => Text(text),
+                    ),
                   ),
                 ),
               ),
@@ -35,7 +43,12 @@ class MediatorSessionsScreen extends StatelessWidget {
                   builder: (context, state) {
                     final sessions = state.orderedSessions;
                     if (sessions.isEmpty) {
-                      return const Center(child: Text('Сессий пока нет'));
+                      return Center(
+                        child: Translator(
+                          termin: AppGlossary.noSessionsYet,
+                          builder: (text) => Text(text),
+                        ),
+                      );
                     }
                     return ListView.builder(
                       itemCount: sessions.length,
@@ -44,10 +57,10 @@ class MediatorSessionsScreen extends StatelessWidget {
 
                         return ListTile(
                           title: Text(
-                            "Сессия от ${DateFormat('d MMM yyyy HH:mm').format(session.createdAt.toLocal())}",
+                            "${AppGlossary.sessionFrom.translate()} ${DateFormat('d MMM yyyy HH:mm').format(session.createdAt.toLocal())}",
                           ),
                           subtitle: Text(
-                            'Ходов: ${session.turns.length}',
+                            '${AppGlossary.movesCount.translate()} ${session.turns.length}',
                           ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {

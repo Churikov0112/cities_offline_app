@@ -23,9 +23,7 @@ class LanguagesBloc extends HydratedBloc<LanguagesEvent, LanguagesState> {
     }
 
     final future = stream.firstWhere(
-      (s) =>
-          s.status == LanguagesStatus.loaded ||
-          s.status == LanguagesStatus.error,
+      (s) => s.status == LanguagesStatus.loaded || s.status == LanguagesStatus.error,
     );
     add(const LanguagesLoadRequested());
     await future;
@@ -35,8 +33,7 @@ class LanguagesBloc extends HydratedBloc<LanguagesEvent, LanguagesState> {
     LanguagesLoadRequested event,
     Emitter<LanguagesState> emit,
   ) async {
-    if (state.status == LanguagesStatus.loaded ||
-        state.status == LanguagesStatus.loading) {
+    if (state.status == LanguagesStatus.loaded || state.status == LanguagesStatus.loading) {
       return;
     }
 
@@ -44,10 +41,12 @@ class LanguagesBloc extends HydratedBloc<LanguagesEvent, LanguagesState> {
 
     try {
       final codes = await _citiesRepository.loadAvailableLanguages();
-      emit(LanguagesState(
-        languages: codes.map(AvailableLanguage.fromCode).toList(),
-        status: LanguagesStatus.loaded,
-      ));
+      emit(
+        LanguagesState(
+          languages: codes.map(AvailableLanguage.fromCode).toList(),
+          status: LanguagesStatus.loaded,
+        ),
+      );
     } catch (_) {
       emit(const LanguagesState(status: LanguagesStatus.error));
     }

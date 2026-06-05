@@ -3,8 +3,10 @@ import 'package:cities_offline_app/features/ai_game/domain/models/ai_difficulty_
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_rules.dart';
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_state.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
+import 'package:cities_offline_app/features/ai_game/presentation/difficulty_picker_sheet.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/language_picker_sheet.dart';
 import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
+import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/bottom_sheet_controller.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
@@ -60,12 +62,33 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
     super.dispose();
   }
 
+  void _showDifficultyPicker(BuildContext context) {
+    BottomSheetController.showBottomSheet(
+      context,
+      (_) => DifficultyPickerSheet(
+        current: _difficulty,
+        customConfig: _customDifficulty,
+      ),
+      expand: true,
+    ).then((result) {
+      if (result is AiDifficultyConfig) {
+        setState(() {
+          _difficulty = result;
+          if (result.preset == AiDifficultyPreset.custom) {
+            _customDifficulty = result;
+          }
+        });
+      }
+    });
+  }
+
   void _showLanguagePicker(BuildContext context, LanguagesState langState) {
     BottomSheetController.showBottomSheet(
       context,
       (sheetContext) => LanguagePickerSheet(
         languages: langState.languages,
         selectedCode: _selectedLanguage,
+        grouped: false,
         onSelected: (code) {
           setState(() {
             _selectedLanguage = code;
@@ -102,15 +125,23 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
               );
             },
             child: Scaffold(
-              appBar: AppBar(title: const Text('Настройки ИИ')),
+              appBar: AppBar(
+                title: Translator(
+                  termin: AppGlossary.aiSettings,
+                  builder: (text) => Text(text),
+                ),
+              ),
               body: ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
-                  const Text('Типы поселений'),
+                  Translator(
+                    termin: AppGlossary.settlementTypes,
+                    builder: (text) => Text(text),
+                  ),
                   ...['city', 'town', 'village', 'hamlet'].map(
                     (type) => CheckboxListTile(
                       value: _rules.allowedTypes.contains(type),
-                      title: Text(type),
+                      title: Text(translateCityType(type)),
                       onChanged: (v) {
                         setState(() {
                           final next = {..._rules.allowedTypes};
@@ -126,7 +157,10 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                   ),
                   SwitchListTile(
                     value: _rules.allowHistoricalNames,
-                    title: const Text('Засчитывать старые названия'),
+                    title: Translator(
+                      termin: AppGlossary.allowHistoricalNames,
+                      builder: (text) => Text(text),
+                    ),
                     onChanged: (v) {
                       setState(() {
                         _rules = _rules.copyWith(allowHistoricalNames: v);
@@ -136,12 +170,15 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                   TextField(
                     controller: _populationController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Минимальная численность населения',
+                    decoration: InputDecoration(
+                      labelText: AppGlossary.minPopulation.translate(),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text('Язык игры'),
+                  Translator(
+                    termin: AppGlossary.gameLanguage,
+                    builder: (text) => Text(text),
+                  ),
                   BlocBuilder<LanguagesBloc, LanguagesState>(
                     bloc: getIt(),
                     builder: (context, langState) {
@@ -167,7 +204,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                                 .firstOrNull;
                       final label = selectedLang != null
                           ? '${selectedLang.nativeName} (${selectedLang.code})'
-                          : 'Авто (по вводу)';
+                          : AppGlossary.auto.translate();
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -185,158 +222,24 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  const Text('Сложность ИИ'),
-                  DropdownButtonFormField<AiDifficultyPreset>(
-                    initialValue: _difficulty.preset,
-                    items: AiDifficultyPreset.values
-                        .map(
-                          (preset) => DropdownMenuItem(
-                            value: preset,
-                            child: Text(preset.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() {
-                        switch (value) {
-                          case AiDifficultyPreset.easy:
-                            _difficulty = const AiDifficultyConfig.easy();
-                            break;
-                          case AiDifficultyPreset.medium:
-                            _difficulty = const AiDifficultyConfig.medium();
-                            break;
-                          case AiDifficultyPreset.hard:
-                            _difficulty = const AiDifficultyConfig.hard();
-                            break;
-                          case AiDifficultyPreset.custom:
-                            _difficulty = _customDifficulty;
-                            break;
-                        }
-                      });
-                    },
+                  Translator(
+                    termin: AppGlossary.difficulty,
+                    builder: (text) => Text(text),
+                  ),
+                  ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Theme.of(context).dividerColor),
+                    ),
+                    title: Text(translateDifficultyPreset(_difficulty.preset.name)),
+                    trailing: const Icon(Icons.keyboard_arrow_down),
+                    onTap: () => _showDifficultyPicker(context),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Изменения сложности применяются сразу к текущей игре.',
+                  Translator(
+                    termin: AppGlossary.difficultyChangesInstant,
+                    builder: (text) => Text(text),
                   ),
-                  if (_difficulty.preset == AiDifficultyPreset.custom) ...[
-                    const SizedBox(height: 16),
-                    _NumberField(
-                      label: 'Размер топ-пула',
-                      initialValue: _difficulty.candidatePoolSize.toString(),
-                      onChanged: (value) {
-                        final parsed = int.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            candidatePoolSize: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                    _NumberField(
-                      label: 'Шанс затупа',
-                      initialValue: _difficulty.mistakeChance.toString(),
-                      onChanged: (value) {
-                        final parsed = double.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            mistakeChance: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                    _NumberField(
-                      label: 'Базовая задержка (мс)',
-                      initialValue: _difficulty.baseThinkingDelayMs.toString(),
-                      onChanged: (value) {
-                        final parsed = int.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            baseThinkingDelayMs: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                    _NumberField(
-                      label: 'Рост усталости за ход',
-                      initialValue: _difficulty.fatigueGrowthPerMove.toString(),
-                      onChanged: (value) {
-                        final parsed = double.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            fatigueGrowthPerMove: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                    _NumberField(
-                      label: 'Задержка за усталость (мс)',
-                      initialValue: _difficulty.fatigueDelayPerPointMs.toString(),
-                      onChanged: (value) {
-                        final parsed = int.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            fatigueDelayPerPointMs: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                    _NumberField(
-                      label: 'Рост шанса затупа от усталости',
-                      initialValue: _difficulty.fatigueMistakePerPoint.toString(),
-                      onChanged: (value) {
-                        final parsed = double.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            fatigueMistakePerPoint: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                    _NumberField(
-                      label: 'Шанс сдачи',
-                      initialValue: _difficulty.surrenderChance.toString(),
-                      onChanged: (value) {
-                        final parsed = double.tryParse(value);
-                        if (parsed == null) {
-                          return;
-                        }
-                        setState(() {
-                          _difficulty = _difficulty.copyWith(
-                            surrenderChance: parsed,
-                          );
-                          _customDifficulty = _difficulty;
-                        });
-                      },
-                    ),
-                  ],
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () {
@@ -371,8 +274,9 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                         context.pop();
                       }
                     },
-                    child: Text(
-                      widget.sessionId == null ? 'Создать игру' : 'Сохранить',
+                    child: Translator(
+                      termin: widget.sessionId == null ? AppGlossary.createGame : AppGlossary.save,
+                      builder: (text) => Text(text),
                     ),
                   ),
                 ],
@@ -380,31 +284,6 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _NumberField extends StatelessWidget {
-  final String label;
-  final String initialValue;
-  final ValueChanged<String> onChanged;
-
-  const _NumberField({
-    required this.label,
-    required this.initialValue,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        initialValue: initialValue,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(labelText: label),
-        onChanged: onChanged,
       ),
     );
   }

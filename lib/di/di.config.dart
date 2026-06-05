@@ -17,6 +17,7 @@ import '../features/ai_game/presentation/bloc/ai_game_bloc.dart' as _i320;
 import '../features/languages/presentation/bloc/languages_bloc.dart' as _i664;
 import '../features/mediator/domain/repos/cities_repository.dart' as _i34;
 import '../features/mediator/presentation/bloc/mediator_bloc.dart' as _i661;
+import '../services/localization/language_bloc/language_bloc.dart' as _i381;
 
 // initializes the registration of main-scope dependencies inside of GetIt
 _i174.GetIt $initGetIt(
@@ -29,6 +30,7 @@ _i174.GetIt $initGetIt(
     () => _i34.CitiesRepository(),
     dispose: (i) => i.dispose(),
   );
+  gh.singleton<_i381.LanguageBloc>(() => _i381.LanguageBloc());
   gh.singleton<_i30.AiMoveService>(
     () => _i30.AiMoveService(citiesRepository: gh<_i34.CitiesRepository>()),
   );

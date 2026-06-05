@@ -1,6 +1,7 @@
 import 'package:cities_offline_app/di/di.dart';
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_state.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
+import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -14,7 +15,12 @@ class AiSessionsScreen extends StatelessWidget {
     return BlocProvider.value(
       value: getIt<AiGameBloc>(),
       child: Scaffold(
-        appBar: AppBar(title: const Text('Пользователь против ИИ')),
+        appBar: AppBar(
+          title: Translator(
+            termin: AppGlossary.userVsAi,
+            builder: (text) => Text(text),
+          ),
+        ),
         body: SafeArea(
           child: Column(
             children: [
@@ -25,7 +31,10 @@ class AiSessionsScreen extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: () => context.pushNamed(RoutePaths.aiRules.name),
                     icon: const Icon(Icons.add),
-                    label: const Text('Новая игра'),
+                    label: Translator(
+                      termin: AppGlossary.newGame,
+                      builder: (text) => Text(text),
+                    ),
                   ),
                 ),
               ),
@@ -34,7 +43,12 @@ class AiSessionsScreen extends StatelessWidget {
                   builder: (context, state) {
                     final sessions = state.orderedSessions;
                     if (sessions.isEmpty) {
-                      return const Center(child: Text('Сессий пока нет'));
+                      return Center(
+                        child: Translator(
+                          termin: AppGlossary.noSessionsYet,
+                          builder: (text) => Text(text),
+                        ),
+                      );
                     }
 
                     return ListView.builder(
@@ -43,10 +57,10 @@ class AiSessionsScreen extends StatelessWidget {
                         final session = sessions[index];
                         return ListTile(
                           title: Text(
-                            'Сессия от ${session.createdAt.toLocal()}',
+                            '${AppGlossary.sessionFrom.translate()} ${session.createdAt.toLocal()}',
                           ),
                           subtitle: Text(
-                            'Ходов: ${session.turns.length} · Сложность: ${session.currentDifficulty.preset.name}',
+                            '${AppGlossary.movesCount.translate()} ${session.turns.length} · ${AppGlossary.difficulty.translate()}: ${translateDifficultyPreset(session.currentDifficulty.preset.name)}',
                           ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {

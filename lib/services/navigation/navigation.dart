@@ -9,6 +9,7 @@ import '../../features/map/presentation/map_screen.dart';
 import '../../features/mediator/presentation/mediator_rules_screen.dart';
 import '../../features/mediator/presentation/mediator_screen/mediator_screen.dart';
 import '../../features/mediator/presentation/mediator_sessions_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -22,7 +23,8 @@ enum RoutePaths {
   aiGame(path: 'game/:sessionId'),
   aiRules(path: 'rules'),
   aiRulesForSession(path: 'rules/:sessionId'),
-  map(path: '/map');
+  map(path: '/map'),
+  settings(path: '/settings');
 
   const RoutePaths({required this.path});
   final String path;
@@ -105,6 +107,11 @@ class AppRouter {
             lon: double.parse(state.uri.queryParameters['lon']!),
             cityName: state.uri.queryParameters['name'] ?? '',
           ),
+        ),
+        GoRoute(
+          path: RoutePaths.settings.path,
+          name: RoutePaths.settings.name,
+          builder: (context, state) => const SettingsScreen(),
         ),
       ],
     );

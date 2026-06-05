@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart' show Scaffold, AppBar, ElevatedButton;
+import 'package:flutter/material.dart' show Scaffold, AppBar, ElevatedButton, Icons, IconButton;
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../services/localization/translator.dart';
 import '../../../../services/navigation/navigation.dart';
 
 part 'home_screen_presenter.dart';
@@ -19,7 +20,18 @@ class HomeScreen extends StatelessWidget {
           // final presenter = HomeScreenPresenter.of(context);
 
           return Scaffold(
-            appBar: AppBar(title: const Text('Cities Offline')),
+            appBar: AppBar(
+              title: Translator(
+                termin: AppGlossary.citiesOffline,
+                builder: (text) => Text(text),
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () => context.pushNamed(RoutePaths.settings.name),
+                  icon: const Icon(Icons.settings),
+                ),
+              ],
+            ),
             body: DecoratedBox(
               decoration: const BoxDecoration(
                 // color: theme.colors.system.backgroundPrimary,
@@ -34,7 +46,10 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () {
                         context.pushNamed(RoutePaths.mediator.name);
                       },
-                      child: const Text('Mediator'),
+                      child: Translator(
+                        termin: AppGlossary.mediator,
+                        builder: (text) => Text(text),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -44,55 +59,12 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () {
                         context.pushNamed(RoutePaths.ai.name);
                       },
-                      child: const Text('User vs AI'),
+                      child: Translator(
+                        termin: AppGlossary.userVsAi,
+                        builder: (text) => Text(text),
+                      ),
                     ),
                   ),
-                  // Toggle(
-                  //   state: toggleStateSnapshot.data == true ? ToggleState.activeSuccess : ToggleState.$default,
-                  //   onChanged: presenter.toggle,
-                  // ),
-                  // UIBox.base4x,
-                  // Button.primary(
-                  //   onPressed: () {
-                  //     context.goNamed(RoutePaths.sandbox.name);
-                  //   },
-                  //   elements: [
-                  //     ButtonElementText.noFlex(text: 'Sandbox'),
-                  //   ],
-                  // ),
-                  // UIBox.base4x,
-                  // Button.primary(
-                  //   onPressed: () {
-                  //     context.goNamed(RoutePaths.map.name);
-                  //   },
-                  //   elements: [
-                  //     ButtonElementText.noFlex(text: 'Map'),
-                  //   ],
-                  // ),
-                  // UIBox.base4x,
-                  // Button.primary(
-                  //   onPressed: () {
-                  //     context.goNamed(RoutePaths.profile.name);
-                  //   },
-                  //   elements: [
-                  //     ButtonElementText.noFlex(text: 'Profile'),
-                  //   ],
-                  // ),
-                  // UIBox.base4x,
-                  // Button.primary(
-                  //   onPressed: () {
-                  //     FirebaseService.showLocalNotification(
-                  //       title: "Local Notification with deeplink",
-                  //       body: "https://rsto.dev2.ninedev.ru/map/a/details/info",
-                  //       data: {
-                  //         "link": "https://rsto.dev2.ninedev.ru/map/a/details/info",
-                  //       },
-                  //     );
-                  //   },
-                  //   elements: [
-                  //     ButtonElementText.noFlex(text: 'Local Push'),
-                  //   ],
-                  // ),
                 ],
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:cities_offline_app/di/di.dart';
 import 'package:cities_offline_app/features/mediator/domain/models/mediator_game_rules.dart';
 import 'package:cities_offline_app/features/mediator/presentation/bloc/mediator_bloc.dart';
+import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,13 +22,11 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
   bool _waitingForNewSession = false;
   Set<String> _knownIds = <String>{};
 
-  // 1. Добавляем поле для блока
   late final MediatorBloc _mediatorBloc;
 
   @override
   void initState() {
     super.initState();
-    // 2. Инициализируем один раз через getIt
     _mediatorBloc = getIt<MediatorBloc>();
 
     _knownIds = _mediatorBloc.state.sessions.keys.toSet();
@@ -45,7 +44,7 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: _mediatorBloc, // 3. Передаём сохранённый блок
+      value: _mediatorBloc,
       child: BlocListener<MediatorBloc, MediatorState>(
         listenWhen: (_, current) => _waitingForNewSession,
         listener: (context, state) {
@@ -63,11 +62,19 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
           }
         },
         child: Scaffold(
-          appBar: AppBar(title: const Text('Настройки игры')),
+          appBar: AppBar(
+            title: Translator(
+              termin: AppGlossary.gameSettings,
+              builder: (text) => Text(text),
+            ),
+          ),
           body: ListView(
             padding: const EdgeInsets.all(12),
             children: [
-              const Text('Типы поселений'),
+              Translator(
+                termin: AppGlossary.settlementTypes,
+                builder: (text) => Text(text),
+              ),
               ...['city', 'town', 'village', 'hamlet'].map(
                 (type) => CheckboxListTile(
                   value: _rules.allowedTypes.contains(type),
@@ -87,7 +94,10 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
               ),
               SwitchListTile(
                 value: _rules.allowHistoricalNames,
-                title: const Text('Засчитывать старые названия'),
+                title: Translator(
+                  termin: AppGlossary.allowHistoricalNames,
+                  builder: (text) => Text(text),
+                ),
                 onChanged: (v) {
                   setState(() {
                     _rules = _rules.copyWith(allowHistoricalNames: v);
@@ -97,8 +107,8 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
               TextField(
                 controller: _populationController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Минимальная численность населения',
+                decoration: InputDecoration(
+                  labelText: AppGlossary.minPopulation.translate(),
                 ),
               ),
               const SizedBox(height: 24),
@@ -107,7 +117,6 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
                   final minPopulation = int.tryParse(_populationController.text) ?? 0;
                   final finalRules = _rules.copyWith(minPopulation: minPopulation);
 
-                  // 4. Используем сохранённый блок — контекст больше не нужен
                   if (widget.sessionId == null) {
                     _knownIds = _mediatorBloc.state.sessions.keys.toSet();
                     _waitingForNewSession = true;
@@ -119,11 +128,12 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
                         rules: finalRules,
                       ),
                     );
-                    context.pop(); // этот context уже внутри поддерева, он работает
+                    context.pop();
                   }
                 },
-                child: Text(
-                  widget.sessionId == null ? 'Создать игру' : 'Сохранить',
+                child: Translator(
+                  termin: widget.sessionId == null ? AppGlossary.createGame : AppGlossary.save,
+                  builder: (text) => Text(text),
                 ),
               ),
             ],

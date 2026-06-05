@@ -5,8 +5,11 @@ import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_sessio
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_state.dart';
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_turn.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
+import 'package:cities_offline_app/services/localization/country_names.dart';
+import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +35,10 @@ class AiGameScreen extends StatelessWidget {
 
             return Scaffold(
               appBar: AppBar(
-                title: const Text('Пользователь против ПК'),
+                title: Translator(
+                  termin: AppGlossary.userVsAi,
+                  builder: (text) => Text(text),
+                ),
                 actions: [
                   IconButton(
                     onPressed: () {
@@ -50,10 +56,10 @@ class AiGameScreen extends StatelessWidget {
                       return const Center(child: Text('Сессия не найдена'));
                     }
 
-                    final winnerText = switch (session.winner) {
-                      AiGameWinner.user => 'Ты победил',
-                      AiGameWinner.ai => 'ПК победил',
-                      null => 'Партия завершена',
+                    final winnerTerm = switch (session.winner) {
+                      AiGameWinner.user => AppGlossary.youWon,
+                      AiGameWinner.ai => AppGlossary.aiWon,
+                      null => AppGlossary.gameFinished,
                     };
 
                     return Column(
@@ -61,11 +67,16 @@ class AiGameScreen extends StatelessWidget {
                         if (session.status == AiGameStatus.finished)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                            child: _ResultBanner(text: winnerText),
+                            child: _ResultBanner(term: winnerTerm),
                           ),
                         Expanded(
                           child: session.turns.isEmpty && !session.isAiThinking
-                              ? const Center(child: Text('Введите первый населенный пункт'))
+                              ? Center(
+                                  child: Translator(
+                                    termin: AppGlossary.enterCity,
+                                    builder: (text) => Text(text),
+                                  ),
+                                )
                               : ListView.builder(
                                   reverse: true,
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -111,9 +122,9 @@ class AiGameScreen extends StatelessWidget {
                                       textInputAction: TextInputAction.send,
                                       onSubmitted: (_) => presenter.submitCity(),
                                       enabled: !session.isAiThinking && session.status == AiGameStatus.active,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Введите населенный пункт',
-                                        border: OutlineInputBorder(),
+                                      decoration: InputDecoration(
+                                        hintText: AppGlossary.enterCity.translate(),
+                                        border: const OutlineInputBorder(),
                                       ),
                                     ),
                                   ),
@@ -141,22 +152,25 @@ class AiGameScreen extends StatelessWidget {
 }
 
 class _ResultBanner extends StatelessWidget {
-  final String text;
+  final AppGlossary term;
 
-  const _ResultBanner({required this.text});
+  const _ResultBanner({required this.term});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontWeight: FontWeight.w600),
+    return Translator(
+      termin: term,
+      builder: (text) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -203,7 +217,10 @@ class _AiThinkingCardState extends State<_AiThinkingCard> {
             const SizedBox(width: 4),
             const SizedBox(width: 28, child: Icon(Icons.smart_toy_outlined, size: 18)),
             const SizedBox(width: 8),
-            const Text('Думаю', style: TextStyle(fontWeight: FontWeight.w600)),
+            Translator(
+              termin: AppGlossary.thinking,
+              builder: (text) => Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
@@ -243,7 +260,14 @@ class _AiTurnCardState extends State<_AiTurnCard> {
         onTap: canExpand ? _toggleExpanded : null,
         onLongPress: () {
           Clipboard.setData(ClipboardData(text: widget.turn.input));
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Скопировано')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Translator(
+                termin: AppGlossary.copied,
+                builder: (text) => Text(text),
+              ),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -258,13 +282,7 @@ class _AiTurnCardState extends State<_AiTurnCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          isAi ? 'ИИ' : 'Игрок',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: isAi ? Colors.deepPurple : Colors.blueGrey,
-                          ),
-                        ),
+                        _AiTurnLabel(isAi: isAi),
                         const SizedBox(height: 6),
                         _AiTurnName(turn: widget.turn),
                         if (widget.turn.status == AiTurnStatus.rejected)
@@ -273,7 +291,13 @@ class _AiTurnCardState extends State<_AiTurnCard> {
                             child: Text(widget.rejectReasonText, style: const TextStyle(color: Colors.redAccent)),
                           ),
                         if (widget.turn.status == AiTurnStatus.surrendered)
-                          const Padding(padding: EdgeInsets.only(top: 4), child: Text('Я сдаюсь, ты победил')),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Translator(
+                              termin: AppGlossary.iSurrender,
+                              builder: (text) => Text(text),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -314,6 +338,26 @@ class _AiTurnCardState extends State<_AiTurnCard> {
   }
 }
 
+class _AiTurnLabel extends StatelessWidget {
+  final bool isAi;
+
+  const _AiTurnLabel({required this.isAi});
+
+  @override
+  Widget build(BuildContext context) {
+    return Translator(
+      termin: isAi ? AppGlossary.ai : AppGlossary.player,
+      builder: (text) => Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: isAi ? Colors.deepPurple : Colors.blueGrey,
+        ),
+      ),
+    );
+  }
+}
+
 class _AiTurnName extends StatelessWidget {
   final AiTurn turn;
 
@@ -337,12 +381,15 @@ class _LocalityDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentLang = getIt<LanguageBloc>().state.language;
+    final countryName = countryNames[locality.countryCode.toLowerCase()]?[currentLang] ?? locality.country;
     final details = <Widget>[
       if (locality.population != null)
-        _detailRow('Население', locality.population.toString()),
-      _detailRow('Тип', locality.cityType),
+        _detailRow(AppGlossary.population.translate(), NumberFormat('#,##0', 'de').format(locality.population)),
+      _detailRow(AppGlossary.type.translate(), translateCityType(locality.cityType)),
+      _detailRow(AppGlossary.country.translate(), countryName),
       if (locality.lat != null && locality.lon != null)
-        _detailRow('Координаты', '${locality.lat!.toStringAsFixed(4)}, ${locality.lon!.toStringAsFixed(4)}'),
+        _detailRow(AppGlossary.coordinates.translate(), '${locality.lat!.toStringAsFixed(4)}, ${locality.lon!.toStringAsFixed(4)}'),
     ];
 
     return Container(
@@ -369,7 +416,10 @@ class _LocalityDetails extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.map, size: 16),
-                label: const Text('На карте', style: TextStyle(fontSize: 12)),
+                label: Translator(
+                  termin: AppGlossary.onMap,
+                  builder: (text) => Text(text, style: const TextStyle(fontSize: 12)),
+                ),
               ),
             ),
           ],
