@@ -210,6 +210,7 @@ class CitiesRepository {
     required bool allowHistoricalNames,
     required int minPopulation,
     required Set<String> usedPlaceIds,
+    String? preferredLang,
     int limit = 200,
   }) async {
     final db = await _database();
@@ -238,6 +239,30 @@ class CitiesRepository {
       if (usedPlaceIds.isNotEmpty) ...usedPlaceIds,
     ];
 
+    final orderBy = <String>[];
+    if (preferredLang != null) {
+      orderBy.add('''
+        CASE
+          WHEN pn.lang = ? THEN 0
+          WHEN pn.lang IN ('int_name', 'name:en') THEN 1
+          ELSE 2
+        END
+      ''');
+      args.add(preferredLang);
+    }
+    orderBy.addAll([
+      '''
+      CASE p.city_type
+        WHEN 'city' THEN 0
+        WHEN 'town' THEN 1
+        WHEN 'village' THEN 2
+        WHEN 'hamlet' THEN 3
+        ELSE 4
+      END
+      ''',
+      'COALESCE(p.population, 0) DESC',
+    ]);
+
     final rows = await db.rawQuery(
       '''
       SELECT
@@ -257,14 +282,7 @@ class CitiesRepository {
       INNER JOIN places p ON p.id = pn.place_id
       WHERE $where
       ORDER BY
-        CASE p.city_type
-          WHEN 'city' THEN 0
-          WHEN 'town' THEN 1
-          WHEN 'village' THEN 2
-          WHEN 'hamlet' THEN 3
-          ELSE 4
-        END,
-        COALESCE(p.population, 0) DESC
+        ${orderBy.join(',\n        ')}
       LIMIT ?
       ''',
       [...args, limit],

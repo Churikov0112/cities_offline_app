@@ -22,7 +22,7 @@ class AiGameScreenPresenter extends StatefulWidget {
 class AiGameScreenPresenterState extends State<AiGameScreenPresenter> {
   final TextEditingController controller = TextEditingController();
 
-  bool get canSubmit => controller.text.trim().characters.length >= 3;
+  bool get canSubmit => controller.text.trim().characters.length >= 2;
 
   void submitCity() {
     if (!canSubmit) {
@@ -33,6 +33,12 @@ class AiGameScreenPresenterState extends State<AiGameScreenPresenter> {
       AiCitySubmitted(sessionId: widget.sessionId, cityName: value),
     );
     controller.clear();
+  }
+
+  void requestHint() {
+    context.read<AiGameBloc>().add(
+      AiHintRequested(sessionId: widget.sessionId),
+    );
   }
 
   String rejectReasonText(AiTurn turn) {

@@ -7,6 +7,7 @@ import 'package:cities_offline_app/features/ai_game/domain/models/ai_turn.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -31,14 +32,11 @@ class AiGameScreen extends StatelessWidget {
 
             return Scaffold(
               appBar: AppBar(
-                title: const Text('Пользователь против ИИ'),
+                title: const Text('Пользователь против ПК'),
                 actions: [
                   IconButton(
                     onPressed: () {
-                      context.pushNamed(
-                        RoutePaths.aiRulesForSession.name,
-                        pathParameters: {'sessionId': sessionId},
-                      );
+                      context.pushNamed(RoutePaths.aiRulesForSession.name, pathParameters: {'sessionId': sessionId});
                     },
                     icon: const Icon(Icons.settings),
                   ),
@@ -54,7 +52,7 @@ class AiGameScreen extends StatelessWidget {
 
                     final winnerText = switch (session.winner) {
                       AiGameWinner.user => 'Ты победил',
-                      AiGameWinner.ai => 'ИИ победил',
+                      AiGameWinner.ai => 'ПК победил',
                       null => 'Партия завершена',
                     };
 
@@ -67,17 +65,10 @@ class AiGameScreen extends StatelessWidget {
                           ),
                         Expanded(
                           child: session.turns.isEmpty && !session.isAiThinking
-                              ? const Center(
-                                  child: Text(
-                                    'Введите первый населенный пункт',
-                                  ),
-                                )
+                              ? const Center(child: Text('Введите первый населенный пункт'))
                               : ListView.builder(
                                   reverse: true,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   physics: const BouncingScrollPhysics(),
                                   itemCount: session.turns.length + (session.isAiThinking ? 1 : 0),
                                   itemBuilder: (context, index) {
@@ -107,6 +98,13 @@ class AiGameScreen extends StatelessWidget {
                                   presenter.canSubmit && !session.isAiThinking && session.status == AiGameStatus.active;
                               return Row(
                                 children: [
+                                  IconButton(
+                                    onPressed: !session.isAiThinking && session.status == AiGameStatus.active
+                                        ? presenter.requestHint
+                                        : null,
+                                    icon: const Icon(Icons.help_outline),
+                                  ),
+                                  const SizedBox(width: 4),
                                   Expanded(
                                     child: TextField(
                                       controller: presenter.controller,
@@ -158,10 +156,7 @@ class _ResultBanner extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimaryContainer,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -206,21 +201,12 @@ class _AiThinkingCardState extends State<_AiThinkingCard> {
         child: Row(
           children: [
             const SizedBox(width: 4),
-            const SizedBox(
-              width: 28,
-              child: Icon(Icons.smart_toy_outlined, size: 18),
-            ),
+            const SizedBox(width: 28, child: Icon(Icons.smart_toy_outlined, size: 18)),
             const SizedBox(width: 8),
-            const Text(
-              'Думаю',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text('Думаю', style: TextStyle(fontWeight: FontWeight.w600)),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
+              transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
               child: Text(
                 _frames[_index],
                 key: ValueKey(_index),
@@ -238,11 +224,7 @@ class _AiTurnCard extends StatefulWidget {
   final AiTurn turn;
   final String rejectReasonText;
 
-  const _AiTurnCard({
-    required this.turn,
-    required this.rejectReasonText,
-    super.key,
-  });
+  const _AiTurnCard({required this.turn, required this.rejectReasonText, super.key});
 
   @override
   State<_AiTurnCard> createState() => _AiTurnCardState();
@@ -259,6 +241,10 @@ class _AiTurnCardState extends State<_AiTurnCard> {
     return Card(
       child: InkWell(
         onTap: canExpand ? _toggleExpanded : null,
+        onLongPress: () {
+          Clipboard.setData(ClipboardData(text: widget.turn.input));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Скопировано')));
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -284,16 +270,10 @@ class _AiTurnCardState extends State<_AiTurnCard> {
                         if (widget.turn.status == AiTurnStatus.rejected)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              widget.rejectReasonText,
-                              style: const TextStyle(color: Colors.redAccent),
-                            ),
+                            child: Text(widget.rejectReasonText, style: const TextStyle(color: Colors.redAccent)),
                           ),
                         if (widget.turn.status == AiTurnStatus.surrendered)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Text('Я сдаюсь, ты победил'),
-                          ),
+                          const Padding(padding: EdgeInsets.only(top: 4), child: Text('Я сдаюсь, ты победил')),
                       ],
                     ),
                   ),
@@ -316,9 +296,7 @@ class _AiTurnCardState extends State<_AiTurnCard> {
                 child: _isExpanded && canExpand
                     ? Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: _LocalityDetails(
-                          locality: widget.turn.locality!,
-                        ),
+                        child: _LocalityDetails(locality: widget.turn.locality!),
                       )
                     : const SizedBox.shrink(),
               ),
@@ -348,10 +326,7 @@ class _AiTurnName extends StatelessWidget {
       return Text(text);
     }
 
-    return Text(
-      text,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-    );
+    return Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600));
   }
 }
 
@@ -377,10 +352,7 @@ class _LocalityDetails extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(8)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: details

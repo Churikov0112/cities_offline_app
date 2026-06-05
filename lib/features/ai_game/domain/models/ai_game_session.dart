@@ -45,6 +45,16 @@ class AiGameSession {
     return '';
   }
 
+  String? get preferredUserLang {
+    for (var i = turns.length - 1; i >= 0; i--) {
+      final turn = turns[i];
+      if (turn.actor == AiTurnActor.user && turn.status == AiTurnStatus.accepted) {
+        return turn.locality?.matchedLang;
+      }
+    }
+    return null;
+  }
+
   AiGameSession copyWith({
     DateTime? updatedAt,
     AiGameRules? rules,

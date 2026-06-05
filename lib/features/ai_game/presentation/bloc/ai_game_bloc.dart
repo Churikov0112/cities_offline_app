@@ -30,6 +30,7 @@ class AiGameBloc extends HydratedBloc<AiGameEvent, AiGameState> {
     on<AiCitySubmitted>(_onCitySubmitted);
     on<AiRulesUpdated>(_onRulesUpdated);
     on<AiDifficultyUpdated>(_onDifficultyUpdated);
+    on<AiHintRequested>(_onHintRequested);
   }
 
   Future<void> _onSessionCreated(
@@ -138,6 +139,85 @@ class AiGameBloc extends HydratedBloc<AiGameEvent, AiGameState> {
         state.upsertSession(
           thinkingSession
               .withTurn(surrenderTurn)
+              .copyWith(
+                fatigue: nextFatigue,
+                status: AiGameStatus.finished,
+                winner: AiGameWinner.user,
+                isAiThinking: false,
+                updatedAt: DateTime.now(),
+              ),
+        ),
+      );
+      return;
+    }
+
+    final aiTurn = aiResult.turn!;
+    emit(
+      state.upsertSession(
+        thinkingSession
+            .withTurn(aiTurn)
+            .copyWith(
+              fatigue: nextFatigue,
+              isAiThinking: false,
+              updatedAt: DateTime.now(),
+            ),
+      ),
+    );
+  }
+
+  Future<void> _onHintRequested(
+    AiHintRequested event,
+    Emitter<AiGameState> emit,
+  ) async {
+    final session = state.sessionById(event.sessionId);
+    if (session == null || session.status == AiGameStatus.finished) {
+      return;
+    }
+    if (session.isAiThinking) {
+      return;
+    }
+
+    emit(state.upsertSession(session.copyWith(isAiThinking: true)));
+
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+
+    final hintLocality = await _aiMoveService.pickHint(session);
+
+    if (hintLocality == null) {
+      emit(state.upsertSession(session.copyWith(isAiThinking: false)));
+      return;
+    }
+    final hintTurn = AiTurn(
+      actor: AiTurnActor.user,
+      input: hintLocality.matchedName,
+      status: AiTurnStatus.accepted,
+      locality: hintLocality,
+    );
+
+    final sessionWithHint = session.withTurn(hintTurn);
+    emit(state.upsertSession(sessionWithHint.copyWith(isAiThinking: false)));
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    final thinkingSession = sessionWithHint.copyWith(isAiThinking: true);
+    emit(state.upsertSession(thinkingSession));
+
+    final aiResult = await _aiMoveService.chooseMove(thinkingSession);
+    final nextFatigue = thinkingSession.fatigue.advance(
+      thinkingSession.currentDifficulty.fatigueGrowthPerMove,
+    );
+
+    if (aiResult.surrendered) {
+      emit(
+        state.upsertSession(
+          thinkingSession
+              .withTurn(
+                const AiTurn(
+                  actor: AiTurnActor.ai,
+                  input: '',
+                  status: AiTurnStatus.surrendered,
+                ),
+              )
               .copyWith(
                 fatigue: nextFatigue,
                 status: AiGameStatus.finished,

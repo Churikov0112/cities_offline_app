@@ -52,6 +52,7 @@ class AiMoveService {
           )
           .map((turn) => turn.locality!.id)
           .toSet(),
+      preferredLang: session.preferredUserLang,
       limit: max(40, config.candidatePoolSize * 10),
     );
 
@@ -92,6 +93,31 @@ class AiMoveService {
         locality: selected,
       ),
     );
+  }
+
+  Future<Locality?> pickHint(AiGameSession session) async {
+    final startLetter = session.expectedStartLetter;
+    if (startLetter.isEmpty) {
+      return null;
+    }
+
+    final candidates = await _citiesRepository.findCandidatesByStartLetter(
+      startLetter: startLetter,
+      allowedTypes: session.rules.allowedTypes,
+      allowHistoricalNames: session.rules.allowHistoricalNames,
+      minPopulation: session.rules.minPopulation,
+      usedPlaceIds: session.turns
+          .where(
+            (turn) =>
+                turn.status == AiTurnStatus.accepted && turn.locality != null,
+          )
+          .map((turn) => turn.locality!.id)
+          .toSet(),
+      preferredLang: session.preferredUserLang,
+      limit: 40,
+    );
+
+    return candidates.isEmpty ? null : candidates.first;
   }
 
   Duration _thinkingDelay(AiGameSession session) {

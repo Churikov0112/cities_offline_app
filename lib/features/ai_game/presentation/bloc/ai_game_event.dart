@@ -43,3 +43,9 @@ class AiDifficultyUpdated extends AiGameEvent {
     required this.difficulty,
   });
 }
+
+class AiHintRequested extends AiGameEvent {
+  final String sessionId;
+
+  const AiHintRequested({required this.sessionId});
+}
