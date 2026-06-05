@@ -3,7 +3,9 @@ import 'package:cities_offline_app/features/ai_game/domain/models/ai_difficulty_
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_rules.dart';
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_state.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
+import 'package:cities_offline_app/features/ai_game/presentation/language_picker_sheet.dart';
 import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
+import 'package:cities_offline_app/services/navigation/bottom_sheet_controller.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -56,6 +58,23 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
   void dispose() {
     _populationController.dispose();
     super.dispose();
+  }
+
+  void _showLanguagePicker(BuildContext context, LanguagesState langState) {
+    BottomSheetController.showBottomSheet(
+      context,
+      (sheetContext) => LanguagePickerSheet(
+        languages: langState.languages,
+        selectedCode: _selectedLanguage,
+        onSelected: (code) {
+          setState(() {
+            _selectedLanguage = code;
+          });
+          Navigator.of(sheetContext).pop();
+        },
+      ),
+      expand: true,
+    );
   }
 
   @override
@@ -138,27 +157,29 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                           ),
                         );
                       }
+
+                      final selectedLang = _selectedLanguage == null
+                          ? null
+                          : langState.languages
+                                .where(
+                                  (l) => l.code == _selectedLanguage,
+                                )
+                                .firstOrNull;
+                      final label = selectedLang != null
+                          ? '${selectedLang.nativeName} (${selectedLang.code})'
+                          : 'Авто (по вводу)';
+
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: DropdownButtonFormField<String?>(
-                          value: _selectedLanguage,
-                          items: [
-                            const DropdownMenuItem(
-                              value: null,
-                              child: Text('Авто (по вводу)'),
+                        child: InkWell(
+                          onTap: () => _showLanguagePicker(context, langState),
+                          borderRadius: BorderRadius.circular(4),
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              suffixIcon: Icon(Icons.arrow_drop_down),
                             ),
-                            ...langState.languages.map(
-                              (lang) => DropdownMenuItem(
-                                value: lang.code,
-                                child: Text('${lang.nativeName} (${lang.code})'),
-                              ),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedLanguage = value;
-                            });
-                          },
+                            child: Text(label),
+                          ),
                         ),
                       );
                     },
