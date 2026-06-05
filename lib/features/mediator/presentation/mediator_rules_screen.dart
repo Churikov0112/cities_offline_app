@@ -56,7 +56,7 @@ class _MediatorRulesScreenState extends State<MediatorRulesScreen> {
               orElse: () => newIds.first,
             );
             _waitingForNewSession = false;
-            context.goNamed(
+            context.pushNamed(
               RoutePaths.mediatorGame.name,
               pathParameters: {'sessionId': createdId},
             );

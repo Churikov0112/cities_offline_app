@@ -3,6 +3,7 @@ import 'package:cities_offline_app/features/ai_game/domain/models/ai_difficulty_
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_rules.dart';
 import 'package:cities_offline_app/features/ai_game/domain/models/ai_game_state.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/bloc/ai_game_bloc.dart';
+import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,6 +26,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
   bool _waitingForNewSession = false;
   Set<String> _knownIds = <String>{};
   late final AiGameBloc _bloc;
+  String? _selectedLanguage;
 
   @override
   void initState() {
@@ -32,12 +34,9 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
     _bloc = getIt<AiGameBloc>();
     _knownIds = _bloc.state.sessions.keys.toSet();
 
-    final existing = widget.sessionId == null
-        ? null
-        : _bloc.state.sessionById(widget.sessionId!);
+    final existing = widget.sessionId == null ? null : _bloc.state.sessionById(widget.sessionId!);
     _rules = existing?.rules ?? const AiGameRules.onlyCities();
-    _difficulty =
-        existing?.currentDifficulty ?? const AiDifficultyConfig.medium();
+    _difficulty = existing?.currentDifficulty ?? const AiDifficultyConfig.medium();
     _customDifficulty = _difficulty.preset == AiDifficultyPreset.custom
         ? _difficulty
         : const AiDifficultyConfig.custom(
@@ -49,6 +48,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
             fatigueGrowthPerMove: 0.8,
             surrenderChance: 0.05,
           );
+    _selectedLanguage = _rules.preferredLanguage;
     _populationController.text = _rules.minPopulation.toString();
   }
 
@@ -77,7 +77,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                 orElse: () => newIds.first,
               );
               _waitingForNewSession = false;
-              context.goNamed(
+              context.pushNamed(
                 RoutePaths.aiGame.name,
                 pathParameters: {'sessionId': createdId},
               );
@@ -120,6 +120,48 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Минимальная численность населения',
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Язык игры'),
+                  BlocBuilder<LanguagesBloc, LanguagesState>(
+                    bloc: getIt(),
+                    builder: (context, langState) {
+                      if (langState.status == LanguagesStatus.loading) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: DropdownButtonFormField<String?>(
+                          value: _selectedLanguage,
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text('Авто (по вводу)'),
+                            ),
+                            ...langState.languages.map(
+                              (lang) => DropdownMenuItem(
+                                value: lang.code,
+                                child: Text('${lang.nativeName} (${lang.code})'),
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedLanguage = value;
+                            });
+                          },
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
                   const Text('Сложность ИИ'),
@@ -227,8 +269,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                     ),
                     _NumberField(
                       label: 'Задержка за усталость (мс)',
-                      initialValue: _difficulty.fatigueDelayPerPointMs
-                          .toString(),
+                      initialValue: _difficulty.fatigueDelayPerPointMs.toString(),
                       onChanged: (value) {
                         final parsed = int.tryParse(value);
                         if (parsed == null) {
@@ -244,8 +285,7 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                     ),
                     _NumberField(
                       label: 'Рост шанса затупа от усталости',
-                      initialValue: _difficulty.fatigueMistakePerPoint
-                          .toString(),
+                      initialValue: _difficulty.fatigueMistakePerPoint.toString(),
                       onChanged: (value) {
                         final parsed = double.tryParse(value);
                         if (parsed == null) {
@@ -279,10 +319,10 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () {
-                      final minPopulation =
-                          int.tryParse(_populationController.text) ?? 0;
+                      final minPopulation = int.tryParse(_populationController.text) ?? 0;
                       final finalRules = _rules.copyWith(
                         minPopulation: minPopulation,
+                        preferredLanguage: _selectedLanguage,
                       );
 
                       if (widget.sessionId == null) {

@@ -299,6 +299,20 @@ class CitiesRepository {
     return results;
   }
 
+  Future<List<String>> loadAvailableLanguages() async {
+    final db = await _database();
+    final rows = await db.rawQuery('''
+      SELECT lang
+      FROM place_names
+      WHERE lang IS NOT NULL
+        AND lang NOT IN ('int_name', 'name:en', 'old_name', 'default', '')
+      GROUP BY lang
+      HAVING COUNT(*) > 50
+      ORDER BY lang
+    ''');
+    return rows.map((row) => row['lang'] as String).toList();
+  }
+
   @disposeMethod
   Future<void> dispose() async {
     final db = _db;

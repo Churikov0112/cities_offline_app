@@ -32,7 +32,7 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ElevatedButton(
                       onPressed: () {
-                        context.goNamed(RoutePaths.mediator.name);
+                        context.pushNamed(RoutePaths.mediator.name);
                       },
                       child: const Text('Mediator'),
                     ),
@@ -42,7 +42,7 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: ElevatedButton(
                       onPressed: () {
-                        context.goNamed(RoutePaths.ai.name);
+                        context.pushNamed(RoutePaths.ai.name);
                       },
                       child: const Text('User vs AI'),
                     ),

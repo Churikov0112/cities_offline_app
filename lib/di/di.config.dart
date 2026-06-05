@@ -14,6 +14,7 @@ import 'package:injectable/injectable.dart' as _i526;
 
 import '../features/ai_game/domain/services/ai_move_service.dart' as _i30;
 import '../features/ai_game/presentation/bloc/ai_game_bloc.dart' as _i320;
+import '../features/languages/presentation/bloc/languages_bloc.dart' as _i664;
 import '../features/mediator/domain/repos/cities_repository.dart' as _i34;
 import '../features/mediator/presentation/bloc/mediator_bloc.dart' as _i661;
 
@@ -30,6 +31,9 @@ _i174.GetIt $initGetIt(
   );
   gh.singleton<_i30.AiMoveService>(
     () => _i30.AiMoveService(citiesRepository: gh<_i34.CitiesRepository>()),
+  );
+  gh.singleton<_i664.LanguagesBloc>(
+    () => _i664.LanguagesBloc(citiesRepository: gh<_i34.CitiesRepository>()),
   );
   gh.singleton<_i661.MediatorBloc>(
     () => _i661.MediatorBloc(citiesRepository: gh<_i34.CitiesRepository>()),

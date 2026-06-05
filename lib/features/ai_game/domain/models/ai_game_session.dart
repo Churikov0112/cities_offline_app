@@ -46,6 +46,10 @@ class AiGameSession {
   }
 
   String? get preferredUserLang {
+    if (rules.preferredLanguage != null) {
+      return rules.preferredLanguage;
+    }
+
     for (var i = turns.length - 1; i >= 0; i--) {
       final turn = turns[i];
       if (turn.actor == AiTurnActor.user && turn.status == AiTurnStatus.accepted) {

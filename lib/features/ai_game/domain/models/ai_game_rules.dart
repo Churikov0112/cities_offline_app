@@ -2,17 +2,20 @@ class AiGameRules {
   final Set<String> allowedTypes;
   final bool allowHistoricalNames;
   final int minPopulation;
+  final String? preferredLanguage;
 
   const AiGameRules({
     required this.allowedTypes,
     required this.allowHistoricalNames,
     required this.minPopulation,
+    this.preferredLanguage,
   });
 
   const AiGameRules.onlyCities()
     : allowedTypes = const {'city', 'town'},
       allowHistoricalNames = false,
-      minPopulation = 0;
+      minPopulation = 0,
+      preferredLanguage = null;
 
   bool isAllowedType(String type) => allowedTypes.contains(type.toLowerCase());
 
@@ -21,6 +24,7 @@ class AiGameRules {
       'allowedTypes': allowedTypes.toList(),
       'allowHistoricalNames': allowHistoricalNames,
       'minPopulation': minPopulation,
+      'preferredLanguage': preferredLanguage,
     };
   }
 
@@ -32,6 +36,7 @@ class AiGameRules {
               .toSet(),
       allowHistoricalNames: json['allowHistoricalNames'] as bool? ?? false,
       minPopulation: json['minPopulation'] as int? ?? 0,
+      preferredLanguage: json['preferredLanguage'] as String?,
     );
   }
 
@@ -39,11 +44,13 @@ class AiGameRules {
     Set<String>? allowedTypes,
     bool? allowHistoricalNames,
     int? minPopulation,
+    String? preferredLanguage,
   }) {
     return AiGameRules(
       allowedTypes: allowedTypes ?? this.allowedTypes,
       allowHistoricalNames: allowHistoricalNames ?? this.allowHistoricalNames,
       minPopulation: minPopulation ?? this.minPopulation,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
     );
   }
 }
