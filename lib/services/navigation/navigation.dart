@@ -5,6 +5,7 @@ import '../../features/ai_game/presentation/ai_game_screen.dart';
 import '../../features/ai_game/presentation/ai_rules_screen.dart';
 import '../../features/ai_game/presentation/ai_sessions_screen.dart';
 import '../../features/home/presentation/home_screen/home_screen.dart';
+import '../../features/map/presentation/map_screen.dart';
 import '../../features/mediator/presentation/mediator_rules_screen.dart';
 import '../../features/mediator/presentation/mediator_screen/mediator_screen.dart';
 import '../../features/mediator/presentation/mediator_sessions_screen.dart';
@@ -20,7 +21,8 @@ enum RoutePaths {
   ai(path: '/ai'),
   aiGame(path: 'game/:sessionId'),
   aiRules(path: 'rules'),
-  aiRulesForSession(path: 'rules/:sessionId');
+  aiRulesForSession(path: 'rules/:sessionId'),
+  map(path: '/map');
 
   const RoutePaths({required this.path});
   final String path;
@@ -94,6 +96,15 @@ class AppRouter {
               ),
             ),
           ],
+        ),
+        GoRoute(
+          path: RoutePaths.map.path,
+          name: RoutePaths.map.name,
+          builder: (context, state) => MapScreen(
+            lat: double.parse(state.uri.queryParameters['lat']!),
+            lon: double.parse(state.uri.queryParameters['lon']!),
+            cityName: state.uri.queryParameters['name'] ?? '',
+          ),
         ),
       ],
     );

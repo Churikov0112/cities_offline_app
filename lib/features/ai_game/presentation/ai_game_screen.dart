@@ -337,16 +337,12 @@ class _LocalityDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final details = <String>[
-      'ID: ${locality.id}',
-      'Официальное имя: ${locality.name}',
-      'Найденный вариант: ${locality.matchedName}',
-      'Тип: ${locality.cityType}',
-      if (locality.country.isNotEmpty) 'Страна: ${locality.country}',
-      if (locality.state.isNotEmpty) 'Регион/Штат: ${locality.state}',
-      if (locality.population != null) 'Население: ${locality.population}',
-      if (locality.lat != null && locality.lon != null) 'Координаты: ${locality.lat}, ${locality.lon}',
-      if (locality.displayName.isNotEmpty) 'Display name: ${locality.displayName}',
+    final details = <Widget>[
+      if (locality.population != null)
+        _detailRow('Население', locality.population.toString()),
+      _detailRow('Тип', locality.cityType),
+      if (locality.lat != null && locality.lon != null)
+        _detailRow('Координаты', '${locality.lat!.toStringAsFixed(4)}, ${locality.lon!.toStringAsFixed(4)}'),
     ];
 
     return Container(
@@ -355,15 +351,37 @@ class _LocalityDetails extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(8)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: details
-            .map(
-              (line) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 1),
-                child: Text(line, style: const TextStyle(fontSize: 12)),
+        children: [
+          ...details,
+          if (locality.lat != null && locality.lon != null) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  context.pushNamed(
+                    RoutePaths.map.name,
+                    queryParameters: {
+                      'lat': locality.lat.toString(),
+                      'lon': locality.lon.toString(),
+                      'name': locality.matchedName,
+                    },
+                  );
+                },
+                icon: const Icon(Icons.map, size: 16),
+                label: const Text('На карте', style: TextStyle(fontSize: 12)),
               ),
-            )
-            .toList(),
+            ),
+          ],
+        ],
       ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Text('$label: $value', style: const TextStyle(fontSize: 12)),
     );
   }
 }

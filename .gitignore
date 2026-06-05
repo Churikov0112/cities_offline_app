@@ -54,3 +54,7 @@ hydrated_aes_cipher.dart
 # Database
 assets/database/cities.db
 assets/database/cities.db.zip
+
+tools/jdk-21.0.11+10.zip
+tools/jdk-21.0.11+10
+tools/temurin21.tar.gz
