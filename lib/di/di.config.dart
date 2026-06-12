@@ -17,7 +17,9 @@ import '../features/ai_game/presentation/bloc/ai_game_bloc.dart' as _i320;
 import '../features/countries/presentation/bloc/countries_bloc.dart' as _i311;
 import '../features/languages/presentation/bloc/languages_bloc.dart' as _i664;
 import '../features/mediator/domain/repos/cities_repository.dart' as _i34;
+import '../features/mediator/domain/services/villages_db_service.dart' as _i674;
 import '../features/mediator/presentation/bloc/mediator_bloc.dart' as _i661;
+import '../features/villages/presentation/bloc/villages_cubit.dart' as _i523;
 import '../services/localization/language_bloc/language_bloc.dart' as _i381;
 
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -27,11 +29,14 @@ _i174.GetIt $initGetIt(
   _i526.EnvironmentFilter? environmentFilter,
 }) {
   final gh = _i526.GetItHelper(getIt, environment, environmentFilter);
+  gh.singleton<_i674.VillagesDbService>(() => _i674.VillagesDbService());
+  gh.singleton<_i523.VillagesCubit>(() => _i523.VillagesCubit());
+  gh.singleton<_i381.LanguageBloc>(() => _i381.LanguageBloc());
   gh.singleton<_i34.CitiesRepository>(
-    () => _i34.CitiesRepository(),
+    () =>
+        _i34.CitiesRepository(villagesDbService: gh<_i674.VillagesDbService>()),
     dispose: (i) => i.dispose(),
   );
-  gh.singleton<_i381.LanguageBloc>(() => _i381.LanguageBloc());
   gh.singleton<_i30.AiMoveService>(
     () => _i30.AiMoveService(citiesRepository: gh<_i34.CitiesRepository>()),
   );

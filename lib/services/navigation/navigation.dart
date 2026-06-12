@@ -1,3 +1,4 @@
+import 'package:cities_offline_app/features/villages/presentation/villages_import_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,7 +25,8 @@ enum RoutePaths {
   aiRules(path: 'rules'),
   aiRulesForSession(path: 'rules/:sessionId'),
   map(path: '/map'),
-  settings(path: '/settings');
+  settings(path: '/settings'),
+  villagesImport(path: '/villages-import');
 
   const RoutePaths({required this.path});
   final String path;
@@ -112,6 +114,11 @@ class AppRouter {
           path: RoutePaths.settings.path,
           name: RoutePaths.settings.name,
           builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.villagesImport.path,
+          name: RoutePaths.villagesImport.name,
+          builder: (context, state) => const VillagesImportScreen(),
         ),
       ],
     );

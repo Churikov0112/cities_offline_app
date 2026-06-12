@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:cities_offline_app/di/di.dart';
 import 'package:cities_offline_app/features/countries/presentation/bloc/countries_bloc.dart';
 import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
+import 'package:cities_offline_app/features/villages/presentation/bloc/villages_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_archive/flutter_archive.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -47,6 +49,9 @@ class _MyAppState extends State<MyApp> {
 
     await getIt<LanguagesBloc>().loadIfNeeded();
     await getIt<CountriesBloc>().loadIfNeeded();
+
+    final villagesCubit = getIt<VillagesCubit>();
+    villagesCubit.init();
 
     _isInitialized = true;
     setState(() {});
@@ -91,13 +96,16 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return !_isInitialized
         ? const Center(child: CircularProgressIndicator())
-        : MaterialApp.router(
-            routerConfig: _router.router,
-            title: 'Cities Offline',
-            color: Colors.black,
-            builder: (context, child) {
-              return child == null ? const SizedBox.shrink() : _MainBuilder(child: child);
-            },
+        : BlocProvider<VillagesCubit>(
+            create: (_) => getIt<VillagesCubit>(),
+            child: MaterialApp.router(
+              routerConfig: _router.router,
+              title: 'Cities Offline',
+              color: Colors.black,
+              builder: (context, child) {
+                return child == null ? const SizedBox.shrink() : _MainBuilder(child: child);
+              },
+            ),
           );
   }
 }

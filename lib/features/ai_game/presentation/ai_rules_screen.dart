@@ -7,6 +7,7 @@ import 'package:cities_offline_app/features/ai_game/presentation/country_picker_
 import 'package:cities_offline_app/features/ai_game/presentation/difficulty_picker_sheet.dart';
 import 'package:cities_offline_app/features/ai_game/presentation/language_picker_sheet.dart';
 import 'package:cities_offline_app/features/languages/presentation/bloc/languages_bloc.dart';
+import 'package:cities_offline_app/features/villages/presentation/bloc/villages_cubit.dart';
 import 'package:cities_offline_app/services/localization/translator.dart';
 import 'package:cities_offline_app/services/navigation/bottom_sheet_controller.dart';
 import 'package:cities_offline_app/services/navigation/navigation.dart';
@@ -154,22 +155,31 @@ class _AiRulesScreenState extends State<AiRulesScreen> {
                     termin: AppGlossary.settlementTypes,
                     builder: (text) => Text(text),
                   ),
-                  ...['city', 'town', 'village', 'hamlet'].map(
-                    (type) => CheckboxListTile(
-                      value: _rules.allowedTypes.contains(type),
-                      title: Text(translateCityType(type)),
-                      onChanged: (v) {
-                        setState(() {
-                          final next = {..._rules.allowedTypes};
-                          if (v == true) {
-                            next.add(type);
-                          } else {
-                            next.remove(type);
-                          }
-                          _rules = _rules.copyWith(allowedTypes: next);
-                        });
-                      },
-                    ),
+                  BlocBuilder<VillagesCubit, VillagesState>(
+                    builder: (context, villagesState) {
+                      return SwitchListTile(
+                        value: _rules.allowedTypes.contains('village'),
+                        title: Translator(
+                          termin: AppGlossary.withVillages,
+                          builder: (text) => Text(text),
+                        ),
+                        subtitle: villagesState.isAvailable
+                            ? null
+                            : Text(
+                                AppGlossary.downloadVillagesDbHint.translate(),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                    onChanged: villagesState.isAvailable ? (v) {
+                      setState(() {
+                        _rules = _rules.copyWith(
+                          allowedTypes: v
+                              ? {'city', 'town', 'village', 'hamlet'}
+                              : {'city', 'town'},
+                        );
+                      });
+                    } : null,
+                      );
+                    },
                   ),
                   ListTile(
                     title: Text(AppGlossary.countries.translate()),

@@ -5,27 +5,106 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/locality.dart';
+import '../services/villages_db_service.dart';
 import '../utils/utils.dart';
 
 @singleton
 class CitiesRepository {
-  Database? _db;
+  Database? _citiesDb;
+  Database? _villagesDb;
+  final VillagesDbService _villagesDbService;
+
+  CitiesRepository({required VillagesDbService villagesDbService}) : _villagesDbService = villagesDbService;
 
   Future<Database> _database() async {
-    if (_db != null) {
-      return _db!;
+    if (_citiesDb != null) {
+      return _citiesDb!;
     }
 
     final appDocumentsDir = await getApplicationDocumentsDirectory();
     final dbPath = p.join(appDocumentsDir.path, 'cities.db');
 
-    _db = await openDatabase(
-      dbPath,
-      readOnly: true,
-      singleInstance: true,
-    );
+    _citiesDb = await openDatabase(dbPath, readOnly: true, singleInstance: true);
+    return _citiesDb!;
+  }
 
-    return _db!;
+  Future<Database?> _villagesDatabase() async {
+    if (_villagesDb != null) {
+      return _villagesDb;
+    }
+    final path = await _villagesDbService.villagesDbPath;
+    if (path == null) {
+      return null;
+    }
+    _villagesDb = await openDatabase(path, readOnly: true, singleInstance: true);
+
+    if (_villagesDb == null) {
+      return null;
+    }
+
+    return _villagesDb;
+  }
+
+  String _localityQuerySql({String? whereClause, String? orderByExtra}) {
+    final orderBy = orderByExtra != null ? '$orderByExtra,' : '';
+    return '''
+      SELECT
+        p.id AS id,
+        p.name AS name,
+        pn.name AS matched_name,
+        pn.lang AS matched_lang,
+        p.display_name AS display_name,
+        p.city_type AS city_type,
+        p.country_code AS country_code,
+        p.country AS country,
+        p.state AS state,
+        p.lat AS lat,
+        p.lon AS lon,
+        p.population AS population
+      FROM place_names pn
+      INNER JOIN places p ON p.id = pn.place_id
+      ${whereClause != null ? 'WHERE $whereClause' : ''}
+      ORDER BY
+        $orderBy
+        CASE p.city_type
+          WHEN 'city' THEN 0
+          WHEN 'town' THEN 1
+          WHEN 'village' THEN 2
+          WHEN 'hamlet' THEN 3
+          ELSE 4
+        END,
+        COALESCE(p.population, 0) DESC
+    ''';
+  }
+
+  Future<List<Map<String, Object?>>> _queryDatabase(
+    Database db,
+    String sql,
+    List<Object?> args,
+  ) async {
+    if (!db.isOpen) {
+      return [];
+    }
+    try {
+      return await db.rawQuery(sql, args);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, Object?>>> _queryAllDatabases(
+    String sql,
+    List<Object?> args,
+  ) async {
+    final db = await _database();
+    final results = <Map<String, Object?>>[];
+    results.addAll(await _queryDatabase(db, sql, args));
+
+    final villagesDb = await _villagesDatabase();
+    if (villagesDb != null) {
+      results.addAll(await _queryDatabase(villagesDb, sql, args));
+    }
+    return results;
   }
 
   Future<Locality?> findLocalityByName(String rawQuery) async {
@@ -37,130 +116,62 @@ class CitiesRepository {
     final db = await _database();
     final normalizedQuery = normalizeCityNameForSearch(query);
 
-    if (normalizedQuery.isNotEmpty) {
-      final normalizedRows = await db.rawQuery(
-        '''
-        SELECT
-          p.id AS id,
-          p.name AS name,
-          pn.name AS matched_name,
-          pn.lang AS matched_lang,
-          p.display_name AS display_name,
-          p.city_type AS city_type,
-          p.country_code AS country_code,
-          p.country AS country,
-          p.state AS state,
-          p.lat AS lat,
-          p.lon AS lon,
-          p.population AS population
-        FROM place_names pn
-        INNER JOIN places p ON p.id = pn.place_id
-        WHERE pn.normalized_name = ?
-        ORDER BY
-          CASE p.city_type
-            WHEN 'city' THEN 0
-            WHEN 'town' THEN 1
-            WHEN 'village' THEN 2
-            WHEN 'hamlet' THEN 3
-            ELSE 4
-          END,
-          COALESCE(p.population, 0) DESC
-        LIMIT 1
-        ''',
-        [normalizedQuery],
-      );
+    Future<Map<String, Object?>?> findInDb(Database targetDb, String sql, List<Object?> args) async {
+      if (!targetDb.isOpen) {
+        return null;
+      }
+      try {
+        final rows = await targetDb.rawQuery(sql, args);
+        return rows.isNotEmpty ? rows.first : null;
+      } catch (_) {
+        return null;
+      }
+    }
 
-      if (normalizedRows.isNotEmpty) {
-        return _mapRowToLocality(normalizedRows.first, query);
+    Future<Map<String, Object?>?> tryInAll(String sql, List<Object?> args) async {
+      final row = await findInDb(db, sql, args);
+      if (row != null) {
+        return row;
+      }
+      final villagesDb = await _villagesDatabase();
+      if (villagesDb != null) {
+        return findInDb(villagesDb, sql, args);
+      }
+      return null;
+    }
+
+    const baseWhere = 'pn.normalized_name = ?';
+
+    final sql = _localityQuerySql(whereClause: baseWhere);
+    final fullSql = '$sql LIMIT 1';
+
+    Map<String, Object?>? row;
+
+    if (normalizedQuery.isNotEmpty) {
+      row = await tryInAll(fullSql, [normalizedQuery]);
+      if (row != null) {
+        return _mapRowToLocality(row, query);
       }
     }
 
     final compatibilityNormalizedQuery = compatibilityKey(query);
-    if (compatibilityNormalizedQuery.isNotEmpty &&
-        compatibilityNormalizedQuery != normalizedQuery) {
-      final compatibilityRows = await db.rawQuery(
-        '''
-        SELECT
-          p.id AS id,
-          p.name AS name,
-          pn.name AS matched_name,
-          pn.lang AS matched_lang,
-          p.display_name AS display_name,
-          p.city_type AS city_type,
-          p.country_code AS country_code,
-          p.country AS country,
-          p.state AS state,
-          p.lat AS lat,
-          p.lon AS lon,
-          p.population AS population
-        FROM place_names pn
-        INNER JOIN places p ON p.id = pn.place_id
-        WHERE pn.normalized_name = ?
-        ORDER BY
-          CASE p.city_type
-            WHEN 'city' THEN 0
-            WHEN 'town' THEN 1
-            WHEN 'village' THEN 2
-            WHEN 'hamlet' THEN 3
-            ELSE 4
-          END,
-          COALESCE(p.population, 0) DESC
-        LIMIT 1
-        ''',
-        [compatibilityNormalizedQuery],
-      );
-
-      if (compatibilityRows.isNotEmpty) {
-        return _mapRowToLocality(compatibilityRows.first, query);
+    if (compatibilityNormalizedQuery.isNotEmpty && compatibilityNormalizedQuery != normalizedQuery) {
+      row = await tryInAll(fullSql, [compatibilityNormalizedQuery]);
+      if (row != null) {
+        return _mapRowToLocality(row, query);
       }
     }
 
     final variants = buildCityQueryVariants(query);
-    Map<String, Object?>? row;
-
     for (final variant in variants) {
-      final rows = await db.rawQuery(
-        '''
-        SELECT
-          p.id AS id,
-          p.name AS name,
-          pn.name AS matched_name,
-          pn.lang AS matched_lang,
-          p.display_name AS display_name,
-          p.city_type AS city_type,
-          p.country_code AS country_code,
-          p.country AS country,
-          p.state AS state,
-          p.lat AS lat,
-          p.lon AS lon,
-          p.population AS population
-        FROM place_names pn
-        INNER JOIN places p ON p.id = pn.place_id
-        WHERE pn.name = ? COLLATE NOCASE
-        ORDER BY
-          CASE p.city_type
-            WHEN 'city' THEN 0
-            WHEN 'town' THEN 1
-            WHEN 'village' THEN 2
-            WHEN 'hamlet' THEN 3
-            ELSE 4
-          END,
-          COALESCE(p.population, 0) DESC
-        LIMIT 1
-        ''',
-        [variant],
-      );
-      if (rows.isNotEmpty) {
-        row = rows.first;
-        break;
+      final variantSql = _localityQuerySql(whereClause: 'pn.name = ? COLLATE NOCASE');
+      row = await tryInAll('$variantSql LIMIT 1', [variant]);
+      if (row != null) {
+        return _mapRowToLocality(row, query);
       }
     }
 
-    if (row == null) {
-      return null;
-    }
-
-    return _mapRowToLocality(row, query);
+    return null;
   }
 
   Locality _mapRowToLocality(Map<String, Object?> row, String fallbackQuery) {
@@ -181,27 +192,25 @@ class CitiesRepository {
   }
 
   Future<List<(String code, String name)>> loadAvailableCountries() async {
-    final db = await _database();
-    final rows = await db.rawQuery(
-      '''
+    const sql = '''
       SELECT country_code, country
       FROM places
-      WHERE country_code IS NOT NULL
-        AND TRIM(country_code) <> ''
+      WHERE country_code IS NOT NULL AND TRIM(country_code) <> ''
       GROUP BY country_code, country
       ORDER BY country ASC
-      ''',
-    );
+    ''';
 
-    return rows
-        .map(
-          (row) => (
-            (row['country_code'] as String? ?? '').toLowerCase(),
-            row['country'] as String? ?? '',
-          ),
-        )
-        .where((it) => it.$1.isNotEmpty)
-        .toList(growable: false);
+    final rows = await _queryAllDatabases(sql, []);
+    final seen = <String>{};
+    final result = <(String, String)>[];
+    for (final row in rows) {
+      final code = (row['country_code'] as String? ?? '').toLowerCase();
+      final name = row['country'] as String? ?? '';
+      if (code.isNotEmpty && seen.add(code)) {
+        result.add((code, name));
+      }
+    }
+    return result;
   }
 
   Future<List<Locality>> findCandidatesByStartLetter({
@@ -214,26 +223,22 @@ class CitiesRepository {
     String? preferredLang,
     int limit = 200,
   }) async {
-    final db = await _database();
     final letters = equivalentLettersForSearch(startLetter);
     if (letters.isEmpty) {
       return const [];
     }
-    final allowedTypesList = allowedTypes.map((e) => e.toLowerCase()).toList()
-      ..sort();
-    final allowedCountryCodesList = allowedCountryCodes.map((e) => e.toLowerCase()).toList()
-      ..sort();
+
+    final allowedTypesList = allowedTypes.map((e) => e.toLowerCase()).toList()..sort();
+    final allowedCountryCodesList = allowedCountryCodes.map((e) => e.toLowerCase()).toList()..sort();
 
     final where = <String>[
       'substr(pn.normalized_name, 1, 1) IN (${List.filled(letters.length, '?').join(', ')})',
       if (!allowHistoricalNames) 'pn.lang != ?',
-      if (allowedTypes.isNotEmpty)
-        'p.city_type IN (${List.filled(allowedTypesList.length, '?').join(', ')})',
+      if (allowedTypes.isNotEmpty) 'p.city_type IN (${List.filled(allowedTypesList.length, '?').join(', ')})',
       if (allowedCountryCodes.isNotEmpty)
         'LOWER(p.country_code) IN (${List.filled(allowedCountryCodesList.length, '?').join(', ')})',
       'COALESCE(p.population, 0) >= ?',
-      if (usedPlaceIds.isNotEmpty)
-        'p.id NOT IN (${List.filled(usedPlaceIds.length, '?').join(', ')})',
+      if (usedPlaceIds.isNotEmpty) 'p.id NOT IN (${List.filled(usedPlaceIds.length, '?').join(', ')})',
     ].join(' AND ');
 
     final args = <Object?>[
@@ -256,43 +261,13 @@ class CitiesRepository {
       ''');
       args.add(preferredLang);
     }
-    orderBy.addAll([
-      '''
-      CASE p.city_type
-        WHEN 'city' THEN 0
-        WHEN 'town' THEN 1
-        WHEN 'village' THEN 2
-        WHEN 'hamlet' THEN 3
-        ELSE 4
-      END
-      ''',
-      'COALESCE(p.population, 0) DESC',
-    ]);
 
-    final rows = await db.rawQuery(
-      '''
-      SELECT
-        p.id AS id,
-        p.name AS name,
-        pn.name AS matched_name,
-        pn.lang AS matched_lang,
-        p.display_name AS display_name,
-        p.city_type AS city_type,
-        p.country_code AS country_code,
-        p.country AS country,
-        p.state AS state,
-        p.lat AS lat,
-        p.lon AS lon,
-        p.population AS population
-      FROM place_names pn
-      INNER JOIN places p ON p.id = pn.place_id
-      WHERE $where
-      ORDER BY
-        ${orderBy.join(',\n        ')}
-      LIMIT ?
-      ''',
-      [...args, limit],
+    final sql = _localityQuerySql(
+      whereClause: where,
+      orderByExtra: orderBy.join(',\n        '),
     );
+
+    final rows = await _queryAllDatabases('$sql LIMIT ?', [...args, limit]);
 
     final seen = <String>{};
     final results = <Locality>[];
@@ -306,8 +281,7 @@ class CitiesRepository {
   }
 
   Future<List<String>> loadAvailableLanguages() async {
-    final db = await _database();
-    final rows = await db.rawQuery('''
+    const sql = '''
       SELECT lang
       FROM place_names
       WHERE lang IS NOT NULL
@@ -315,17 +289,33 @@ class CitiesRepository {
       GROUP BY lang
       HAVING COUNT(*) > 50
       ORDER BY lang
-    ''');
-    return rows.map((row) => row['lang'] as String).toList();
+    ''';
+
+    final rows = await _queryAllDatabases(sql, []);
+    final seen = <String>{};
+    for (final row in rows) {
+      final lang = row['lang'] as String;
+      seen.add(lang);
+    }
+    return seen.toList(growable: false);
   }
 
   @disposeMethod
-  Future<void> dispose() async {
-    final db = _db;
-    if (db != null) {
-      await db.close();
-      _db = null;
-      debugPrint('CitiesRepository database closed');
+  Future<void> closeVillagesDatabase() async {
+    if (_villagesDb != null && _villagesDb!.isOpen) {
+      await _villagesDb!.close();
     }
+    _villagesDb = null;
+  }
+
+  Future<void> dispose() async {
+    for (final db in [_citiesDb, _villagesDb]) {
+      if (db != null && db.isOpen) {
+        await db.close();
+      }
+    }
+    _citiesDb = null;
+    _villagesDb = null;
+    debugPrint('CitiesRepository databases closed');
   }
 }

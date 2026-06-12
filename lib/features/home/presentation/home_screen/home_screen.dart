@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart' show Scaffold, AppBar, ElevatedButton, Icons, IconButton;
-import 'package:flutter/widgets.dart';
+import 'package:cities_offline_app/features/villages/presentation/bloc/villages_cubit.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../services/localization/translator.dart';
@@ -64,6 +65,39 @@ class HomeScreen extends StatelessWidget {
                         builder: (text) => Text(text),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  BlocBuilder<VillagesCubit, VillagesState>(
+                    builder: (context, state) {
+                      if (state.isAvailable) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              context.pushNamed(RoutePaths.villagesImport.name);
+                            },
+                            icon: const Icon(Icons.manage_search),
+                            label: Translator(
+                              termin: AppGlossary.manageVillages,
+                              builder: (text) => Text(text),
+                            ),
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            context.pushNamed(RoutePaths.villagesImport.name);
+                          },
+                          icon: const Icon(Icons.add_location),
+                          label: Translator(
+                            termin: AppGlossary.addVillages,
+                            builder: (text) => Text(text),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
