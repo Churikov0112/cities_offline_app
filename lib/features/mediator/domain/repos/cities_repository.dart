@@ -107,7 +107,7 @@ class CitiesRepository {
     return results;
   }
 
-  Future<Locality?> findLocalityByName(String rawQuery) async {
+  Future<Locality?> findLocalityByName(String rawQuery, {String? preferredLang}) async {
     final query = rawQuery.trim();
     if (query.isEmpty) {
       return null;
@@ -140,15 +140,20 @@ class CitiesRepository {
       return null;
     }
 
-    const baseWhere = 'pn.normalized_name = ?';
-
-    final sql = _localityQuerySql(whereClause: baseWhere);
-    final fullSql = '$sql LIMIT 1';
+    String _sqlWithLang(String whereClause) {
+      return _localityQuerySql(
+        whereClause: whereClause,
+        orderByExtra: preferredLang != null ? 'CASE WHEN pn.lang = ? THEN 0 ELSE 1 END' : null,
+      );
+    }
 
     Map<String, Object?>? row;
 
     if (normalizedQuery.isNotEmpty) {
-      row = await tryInAll(fullSql, [normalizedQuery]);
+      final sql = _sqlWithLang('pn.normalized_name = ?');
+      final args = <Object?>[normalizedQuery];
+      if (preferredLang != null) args.add(preferredLang);
+      row = await tryInAll('$sql LIMIT 1', args);
       if (row != null) {
         return _mapRowToLocality(row, query);
       }
@@ -156,7 +161,10 @@ class CitiesRepository {
 
     final compatibilityNormalizedQuery = compatibilityKey(query);
     if (compatibilityNormalizedQuery.isNotEmpty && compatibilityNormalizedQuery != normalizedQuery) {
-      row = await tryInAll(fullSql, [compatibilityNormalizedQuery]);
+      final sql = _sqlWithLang('pn.normalized_name = ?');
+      final args = <Object?>[compatibilityNormalizedQuery];
+      if (preferredLang != null) args.add(preferredLang);
+      row = await tryInAll('$sql LIMIT 1', args);
       if (row != null) {
         return _mapRowToLocality(row, query);
       }
@@ -164,8 +172,10 @@ class CitiesRepository {
 
     final variants = buildCityQueryVariants(query);
     for (final variant in variants) {
-      final variantSql = _localityQuerySql(whereClause: 'pn.name = ? COLLATE NOCASE');
-      row = await tryInAll('$variantSql LIMIT 1', [variant]);
+      final variantSql = _sqlWithLang('pn.name = ? COLLATE NOCASE');
+      final args = <Object?>[variant];
+      if (preferredLang != null) args.add(preferredLang);
+      row = await tryInAll('$variantSql LIMIT 1', args);
       if (row != null) {
         return _mapRowToLocality(row, query);
       }

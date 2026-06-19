@@ -47,6 +47,7 @@ class _VoiceGameScreenState extends State<VoiceGameScreen> {
   late CommandParser _parser;
 
   String? _sessionId;
+  String? _voiceLangCode;
   bool _isPlaying = true;
   bool _skipNextPrompt = false;
   String? _lastAiCityName;
@@ -84,6 +85,7 @@ class _VoiceGameScreenState extends State<VoiceGameScreen> {
     final locale = await _speech.currentLocale;
     final detected = CityInfoService.languageFromLocale(locale);
     final voiceLang = detected ?? uiLang;
+    _voiceLangCode = detected?.code;
 
     _parser = CommandParser(repo: _repo, uiLanguage: voiceLang);
 
@@ -104,7 +106,12 @@ class _VoiceGameScreenState extends State<VoiceGameScreen> {
     final prevIds = List<String>.from(_gameBloc.state.orderedSessionIds);
     _gameBloc.add(
       AiSessionCreated(
-        rules: const AiGameRules.onlyCities(),
+        rules: AiGameRules(
+          allowedTypes: {'city', 'town'},
+          allowHistoricalNames: false,
+          minPopulation: 0,
+          preferredLanguage: _voiceLangCode,
+        ),
         difficulty: const AiDifficultyConfig.medium(),
       ),
     );
@@ -136,12 +143,6 @@ class _VoiceGameScreenState extends State<VoiceGameScreen> {
     final session = _currentSession();
     if (session == null || session.status == AiGameStatus.finished) {
       await _handleGameOver(session);
-      return;
-    }
-
-    // Handle pending turn results (from text input)
-    if (_hasPendingResult(session)) {
-      await _handleTurnResult(session);
       return;
     }
 
@@ -201,27 +202,6 @@ class _VoiceGameScreenState extends State<VoiceGameScreen> {
         final l = _currentSession()?.expectedStartLetter ?? '?';
         await _tts.speak(_cityInfo.notUnderstoodText(l));
         _cubit.setStatusText(AppGlossary.voiceNotUnderstood.translate().replaceAll('{letter}', l));
-    }
-  }
-
-  bool _hasPendingResult(AiGameSession session) {
-    if (session.turns.isEmpty) return false;
-    final last = session.turns.last;
-    return last.actor == AiTurnActor.user && last.status != AiTurnStatus.accepted;
-  }
-
-  Future<void> _handleTurnResult(AiGameSession session) async {
-    final lastTurn = session.turns.last;
-
-    if (lastTurn.status == AiTurnStatus.rejected) {
-      final reason = _cityInfo.rejectReasonText(lastTurn);
-      _cubit.setStatusText(reason);
-      await _tts.speak(_cityInfo.cityRejectedText(reason));
-      return;
-    }
-
-    if (lastTurn.status == AiTurnStatus.surrendered) {
-      await _handleGameOver(session);
     }
   }
 
@@ -333,15 +313,14 @@ class _VoiceGameScreenState extends State<VoiceGameScreen> {
     await _tts.speak(msg);
   }
 
-  void _onTextSubmitted() {
+  Future<void> _onTextSubmitted() async {
     if (_processingInput) return;
     final text = _textController.text.trim();
     if (text.isEmpty) return;
     _textController.clear();
 
-    _processingInput = true;
     _speech.stop().catchError((_) {});
-    _gameBloc.add(AiCitySubmitted(sessionId: _sessionId!, cityName: text));
+    await _handleCityName(text);
   }
 
   Future<void> _showExitConfirmation() async {

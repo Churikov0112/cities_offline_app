@@ -274,7 +274,7 @@ class AiGameBloc extends HydratedBloc<AiGameEvent, AiGameState> {
       }
     }
 
-    final locality = await _citiesRepository.findLocalityByName(input);
+    final locality = await _citiesRepository.findLocalityByName(input, preferredLang: session.preferredUserLang);
     if (locality == null) {
       return AiTurn(
         actor: AiTurnActor.user,
