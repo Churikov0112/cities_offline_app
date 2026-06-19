@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cities_offline_app/features/villages/presentation/bloc/villages_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../services/google_services/google_services_service.dart';
 import '../../../../services/localization/translator.dart';
 import '../../../../services/navigation/navigation.dart';
 
@@ -65,6 +68,30 @@ class HomeScreen extends StatelessWidget {
                         builder: (text) => Text(text),
                       ),
                     ),
+                  ),
+                  FutureBuilder<bool>(
+                    future: GoogleServicesService.hasGoogleServices(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox.shrink();
+                      }
+                      if (snapshot.data != true) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            context.pushNamed(RoutePaths.voice.name);
+                          },
+                          icon: const Icon(Icons.mic),
+                          label: Translator(
+                            termin: AppGlossary.voiceGame,
+                            builder: (text) => Text(text),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 24),
                   BlocBuilder<VillagesCubit, VillagesState>(

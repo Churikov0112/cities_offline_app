@@ -46,6 +46,8 @@ dependencies:
   characters: ^1.4.0
   diacritic: 0.1.6
   url_launcher: ^6.3.0
+  speech_to_text: ^7.4.0
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

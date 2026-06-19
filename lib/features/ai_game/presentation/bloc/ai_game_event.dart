@@ -49,3 +49,5 @@ class AiHintRequested extends AiGameEvent {
 
   const AiHintRequested({required this.sessionId});
 }
+
+

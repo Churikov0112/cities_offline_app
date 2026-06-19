@@ -11,6 +11,7 @@ import '../../features/mediator/presentation/mediator_rules_screen.dart';
 import '../../features/mediator/presentation/mediator_screen/mediator_screen.dart';
 import '../../features/mediator/presentation/mediator_sessions_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/voice_ai_game/presentation/screens/voice_game_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -24,6 +25,8 @@ enum RoutePaths {
   aiGame(path: 'game/:sessionId'),
   aiRules(path: 'rules'),
   aiRulesForSession(path: 'rules/:sessionId'),
+  voice(path: '/voice'),
+  voiceGame(path: 'game/:sessionId'),
   map(path: '/map'),
   settings(path: '/settings'),
   villagesImport(path: '/villages-import');
@@ -97,6 +100,20 @@ class AppRouter {
               name: RoutePaths.aiRulesForSession.name,
               builder: (context, state) => AiRulesScreen(
                 sessionId: state.pathParameters['sessionId']!,
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: RoutePaths.voice.path,
+          name: RoutePaths.voice.name,
+          builder: (context, state) => const VoiceGameScreen(),
+          routes: [
+            GoRoute(
+              path: RoutePaths.voiceGame.path,
+              name: RoutePaths.voiceGame.name,
+              builder: (context, state) => VoiceGameScreen(
+                sessionId: state.pathParameters['sessionId'],
               ),
             ),
           ],
