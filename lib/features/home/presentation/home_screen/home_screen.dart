@@ -69,6 +69,16 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        context.pushNamed(RoutePaths.game.name);
+                      },
+                      child: const Text('Game'),
+                    ),
+                  ),
                   FutureBuilder<bool>(
                     future: GoogleServicesService.hasGoogleServices(),
                     builder: (context, snapshot) {

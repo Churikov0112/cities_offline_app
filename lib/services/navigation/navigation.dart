@@ -1,3 +1,6 @@
+import 'package:cities_offline_app/features/game/presentation/screens/game_rules_screen.dart';
+import 'package:cities_offline_app/features/game/presentation/screens/game_screen.dart';
+import 'package:cities_offline_app/features/game/presentation/screens/game_sessions_screen.dart';
 import 'package:cities_offline_app/features/villages/presentation/villages_import_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +30,10 @@ enum RoutePaths {
   aiRulesForSession(path: 'rules/:sessionId'),
   voice(path: '/voice'),
   voiceGame(path: 'game/:sessionId'),
+  game(path: '/game'),
+  gameSession(path: ':sessionId'),
+  gameRules(path: 'rules'),
+  gameRulesForSession(path: 'rules/:sessionId'),
   map(path: '/map'),
   settings(path: '/settings'),
   villagesImport(path: '/villages-import');
@@ -114,6 +121,32 @@ class AppRouter {
               name: RoutePaths.voiceGame.name,
               builder: (context, state) => VoiceGameScreen(
                 sessionId: state.pathParameters['sessionId'],
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: RoutePaths.game.path,
+          name: RoutePaths.game.name,
+          builder: (context, state) => const GameSessionsScreen(),
+          routes: [
+            GoRoute(
+              path: RoutePaths.gameRules.path,
+              name: RoutePaths.gameRules.name,
+              builder: (context, state) => const GameRulesScreen(),
+            ),
+            GoRoute(
+              path: RoutePaths.gameRulesForSession.path,
+              name: RoutePaths.gameRulesForSession.name,
+              builder: (context, state) => GameRulesScreen(
+                sessionId: state.pathParameters['sessionId']!,
+              ),
+            ),
+            GoRoute(
+              path: RoutePaths.gameSession.path,
+              name: RoutePaths.gameSession.name,
+              builder: (context, state) => GameScreen(
+                sessionId: state.pathParameters['sessionId']!,
               ),
             ),
           ],
